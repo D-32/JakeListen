@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.jakelisten.syscap</string>
+	<key>CFBundleName</key>
+	<string>JakeListen</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.3</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>JakeListen records the audio from your call so it can transcribe and summarize it.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>JakeListen records your microphone so it can transcribe and summarize your call.</string>
+</dict>
+</plist>
