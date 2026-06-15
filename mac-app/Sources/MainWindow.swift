@@ -12,6 +12,7 @@ struct MainWindow: View {
         } detail: {
             detail
         }
+        .safeAreaInset(edge: .top) { recordingBanner }
         .toolbar { toolbarContent }
         .sheet(isPresented: $model.showPostPrompt) {
             VStack(alignment: .leading, spacing: 12) {
@@ -41,6 +42,36 @@ struct MainWindow: View {
     private func post() {
         model.postSelectedToSlack(channel: model.postChannel)
         model.showPostPrompt = false
+    }
+
+    // MARK: - Recording banner (live input meter)
+
+    @ViewBuilder
+    private var recordingBanner: some View {
+        if model.state == .recording {
+            HStack(spacing: 16) {
+                HStack(spacing: 8) {
+                    Image(systemName: "record.circle.fill")
+                        .foregroundStyle(.red)
+                    Text("Recording")
+                        .fontWeight(.semibold)
+                    Text(model.elapsedText)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                Divider().frame(height: 28)
+                SignalMeterView(meter: model.meter)
+                Spacer(minLength: 0)
+                Button("Stop", action: model.stop)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.bar)
+            .overlay(alignment: .bottom) { Divider() }
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
     }
 
     // MARK: - Sidebar

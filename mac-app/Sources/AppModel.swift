@@ -34,6 +34,9 @@ final class AppModel: ObservableObject {
     @Published var hasAPIKey = false
     @Published var showOnboarding = false
 
+    // Live mic input meter (runs alongside the CLI; see AudioMeter).
+    let meter = AudioMeter()
+
     private var process: Process?
     private var stdinHandle: FileHandle?
     private var timer: Timer?
@@ -177,6 +180,7 @@ final class AppModel: ObservableObject {
         elapsed = 0
         state = .recording
         status = "Recording…"
+        meter.start()
 
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self, let started = self.startedAt else { return }
@@ -188,6 +192,7 @@ final class AppModel: ObservableObject {
         guard state == .recording else { return }
         timer?.invalidate()
         timer = nil
+        meter.stop()
         state = .processing
         status = "Transcribing & summarizing…"
         // A newline is what the CLI reads as "Enter" to stop and process.
@@ -198,6 +203,7 @@ final class AppModel: ObservableObject {
         process = nil
         stdinHandle = nil
         startedAt = nil
+        meter.stop()  // safety: the process may have exited without a stop()
         state = .idle
         status = "Ready"
         refresh()

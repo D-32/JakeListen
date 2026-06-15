@@ -25,7 +25,7 @@ cp "$DIR/Info.plist" "$APP/Contents/Info.plist"
 
 swiftc -O \
     -target "${ARCH}-apple-macos${MIN_OS}" \
-    -framework SwiftUI -framework AppKit \
+    -framework SwiftUI -framework AppKit -framework AVFoundation \
     $(find "$DIR/Sources" -name '*.swift') \
     -o "$APP/Contents/MacOS/JakeListen"
 

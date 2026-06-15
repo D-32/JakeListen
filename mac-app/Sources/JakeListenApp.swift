@@ -26,12 +26,33 @@ struct JakeListenApp: App {
         }
 
         MenuBarExtra(isInserted: $showMenuBarItem) {
-            MenuBarContent()
+            MenuBarContent(meter: model.meter)
                 .environmentObject(model)
         } label: {
-            Image(systemName: model.state == .recording ? "record.circle.fill" : "dog.fill")
+            MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.menu)
+    }
+}
+
+/// Menu-bar icon. Shows the dog normally, a red dot while recording, and a
+/// warning triangle if the mic has gone silent — a glanceable "it's not
+/// hearing anything" signal even when the window is closed.
+private struct MenuBarLabel: View {
+    @ObservedObject var model: AppModel
+    @ObservedObject var meter: AudioMeter
+
+    init(model: AppModel) {
+        self.model = model
+        self.meter = model.meter
+    }
+
+    var body: some View {
+        if model.state == .recording {
+            Image(systemName: meter.noSignal ? "exclamationmark.triangle.fill" : "record.circle.fill")
+        } else {
+            Image(systemName: "dog.fill")
+        }
     }
 }
 
