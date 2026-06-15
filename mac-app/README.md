@@ -5,7 +5,11 @@ tool. It doesn't re-implement anything — it drives the existing CLI, so the au
 capture, transcription, and summary pipeline are identical to the terminal
 version.
 
-![menu bar + window](#) <!-- add a screenshot here if you like -->
+![JakeListen for Mac — window showing a call summary and transcript](screenshot.png)
+
+<p align="center">
+  <img src="screenshot-menubar.png" alt="JakeListen menu-bar popover" width="320">
+</p>
 
 ## What it gives you
 
