@@ -1,0 +1,37 @@
+package.json
+  s_30093b10eb1e71::t_3cd48fee1d1d01 4
+install.sh
+  s_30093b10eb1e71::t_c9fd98b351b22b 15
+  s_30093b10eb1e71::t_0c0a4c3a045059 104
+jakelisten.js
+  s_30093b10eb1e71::t_68e4017ecbb3a5 1208
+  s_30093b10eb1e71::t_c4b0c994e86593 897,900
+  s_30093b10eb1e71::t_39b598bba402c5 894
+  s_30093b10eb1e71::t_e00af9ad43d31b 1169
+  s_30093b10eb1e71::t_61b50b1e1ce4cf 1212
+  s_30093b10eb1e71::t_a37d65d6f2e60b 805-806
+README.md
+  s_30093b10eb1e71::t_b85fe7d4ab57de 54-55
+  s_30093b10eb1e71::t_1ba3bbfa825350 64
+  s_30093b10eb1e71::t_17ca8f705b3ea6 74
+  s_30093b10eb1e71::t_4a74ed1e0eb6d1 3
+  s_30093b10eb1e71::t_cc17391fd38a8b 123
+  s_30093b10eb1e71::t_5d7f940445574a 18
+  s_30093b10eb1e71::t_835de3e3719bba 127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "c4c3d783634176cfb73bdb6c79268bae6ca03c24",
+  "prompts": {},
+  "sessions": {
+    "s_30093b10eb1e71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc8dd09-8557-474f-ace4-65b333bf6074",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
