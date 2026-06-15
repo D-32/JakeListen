@@ -1,6 +1,6 @@
 # 🐕 JakeListen
 
-A lightweight command-line tool for macOS that records a call, transcribes it, and writes a short summary. It captures both sides of the conversation (your microphone and the system audio coming out of your speakers), sends the audio to Google Gemini for transcription, and produces a clean, speaker-labeled transcript plus an optional Slack-ready summary.
+A lightweight command-line tool for macOS that records a call, transcribes it, and writes a short summary. It captures both sides of the conversation (your microphone and the system audio coming out of your speakers), sends the audio to Google Gemini for transcription, and produces a clean, speaker-labelled transcript plus an optional Slack-ready summary.
 
 Named after Jake the dog.
 
@@ -15,7 +15,7 @@ Named after Jake the dog.
 - **Records both sides of a call** without any virtual audio driver. Your mic is captured with `ffmpeg`; the other participants are captured straight from the system audio output using macOS Core Audio process taps (macOS 14.2+). No BlackHole, no Multi-Output Device.
 - **Transcribes with Gemini.** Each side is transcribed independently and merged by timestamp, so you get reliable speaker separation ("Me" vs. the other participants).
 - **Handles long calls.** Recordings are split into overlapping chunks, transcribed in parallel, de-duplicated across the overlap, and stripped of silence so the model does not hallucinate on quiet stretches.
-- **Summarizes.** Produces a concise summary with participants, key points, decisions, and action items.
+- **Summarises.** Produces a concise summary with participants, key points, decisions, and action items.
 - **Posts to Slack (optional).** If you have a Slack CLI installed, it can post the summary to a channel of your choice.
 
 Everything is saved locally under `~/JakeListen/recordings/` as `.wav` audio, a `.transcript.txt`, and a `.summary.txt`.
@@ -51,8 +51,8 @@ The installer checks prerequisites, builds the system-audio helper, links the `j
 
 ```bash
 jakelisten                 # menu: start a recording, or re-process a recent one
-jakelisten record          # record a call, then transcribe + summarize
-jakelisten transcribe FILE # transcribe + summarize an existing audio file
+jakelisten record          # record a call, then transcribe + summarise
+jakelisten transcribe FILE # transcribe + summarise an existing audio file
 jakelisten process         # pick a recent recording and re-process it (retry after a failure)
 jakelisten permission      # grant macOS system-audio recording (one-time)
 jakelisten devices         # list audio input devices
@@ -61,7 +61,7 @@ jakelisten config          # change Gemini key, models, name, Slack recipient
 jakelisten help            # show help
 ```
 
-To record: run `jakelisten`, take your call as usual (you still hear everyone), then press **Return** to stop. JakeListen transcribes, summarizes, and (optionally) posts to Slack.
+To record: run `jakelisten`, take your call as usual (you still hear everyone), then press **Return** to stop. JakeListen transcribes, summarises, and (optionally) posts to Slack.
 
 ### Prefer a GUI?
 
@@ -77,7 +77,7 @@ The first time you record, JakeListen asks for a few things and saves them to `~
 
 - **Gemini API key** (required)
 - **Your name** (optional): used to label your side of the call as `Me (Name)`
-- **Domain context** (optional): names, jargon, or acronyms you want spelled correctly in the transcript, for example: `Project Acme; teammates Sam, Priya; acronyms KPI, SLA.`
+- **Domain context** (optional): names, jargon, or acronyms you want spelt correctly in the transcript, for example: `Project Acme; teammates Sam, Priya; acronyms KPI, SLA.`
 
 Change any of these later with `jakelisten config`. You can also supply the key via the `GEMINI_API_KEY` environment variable.
 
@@ -126,10 +126,10 @@ To set this up on their Mac:
 
 ## Privacy
 
-Recording calls may require the consent of everyone involved depending on where you and they are located. Make sure you have it. Audio, transcripts, and summaries are written to your local disk; audio is uploaded to Google Gemini for transcription and summarization under [Google's API terms](https://ai.google.dev/terms). Nothing else leaves your machine unless you choose to post a summary to Slack.
+Recording calls may require the consent of everyone involved depending on where you and they are located. Make sure you have it. Audio, transcripts, and summaries are written to your local disk; audio is uploaded to Google Gemini for transcription and summarisation under [Google's API terms](https://ai.google.dev/terms). Nothing else leaves your machine unless you choose to post a summary to Slack.
 
 ---
 
-## License
+## Licence
 
 MIT
