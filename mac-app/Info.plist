@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>JakeListen</string>
+    <key>CFBundleDisplayName</key>
+    <string>JakeListen</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.github.d-32.jakelisten</string>
+    <key>CFBundleExecutable</key>
+    <string>JakeListen</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.6.0</string>
+    <key>CFBundleVersion</key>
+    <string>0.6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.2</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>JakeListen records your microphone so it can transcribe and summarize your calls.</string>
+</dict>
+</plist>

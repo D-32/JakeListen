@@ -1,0 +1,6 @@
+# Build output — produced by build.sh
+build/
+*.app
+
+# Scratch icon candidates
+.icon-candidates-*
