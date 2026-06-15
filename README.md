@@ -63,6 +63,12 @@ jakelisten help            # show help
 
 To record: run `jakelisten`, take your call as usual (you still hear everyone), then press **Return** to stop. JakeListen transcribes, summarizes, and (optionally) posts to Slack.
 
+### Prefer a GUI?
+
+There's an optional native **menu-bar + window** app that drives this same CLI —
+start/stop from the menu bar and browse past transcripts in a window. See
+[`mac-app/`](mac-app/) (`cd mac-app && ./build.sh --run`).
+
 ---
 
 ## First-run setup
