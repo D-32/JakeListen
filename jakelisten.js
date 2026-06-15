@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 
 // ---------- version ----------
-const VERSION = "0.6";
+const VERSION = "0.7";
 
 // ---------- paths & config ----------
 const HOME = homedir();
@@ -1253,7 +1253,8 @@ ${c.bold("Usage:")}
 // Pull a "--flag value" (or "--flag=value") out of the remaining argv.
 function flagValue(rest, name) {
   const i = rest.indexOf(name);
-  if (i >= 0 && rest[i + 1] && !rest[i + 1].startsWith("--")) return rest[i + 1];
+  if (i >= 0 && rest[i + 1] && !rest[i + 1].startsWith("--"))
+    return rest[i + 1];
   const eq = rest.find((a) => a.startsWith(name + "="));
   return eq ? eq.slice(name.length + 1) : null;
 }
@@ -1293,7 +1294,7 @@ async function main() {
       case "transcribe": {
         const f = rest[0];
         if (!f || !existsSync(f))
-          die("Usage: jakelisten transcribe <audio-file> [--speakers \"A, B\"]");
+          die('Usage: jakelisten transcribe <audio-file> [--speakers "A, B"]');
         cfg = await ensureConfigured(cfg);
         const speakers = flagValue(rest, "--speakers");
         if (speakers) cfg.participants = speakers;
