@@ -1,0 +1,19 @@
+README.md
+  s_30093b10eb1e71::t_8165b2ed53c23f 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "6271ff9b357d226ffef833159aeb672dbc77d0c5",
+  "prompts": {},
+  "sessions": {
+    "s_30093b10eb1e71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc8dd09-8557-474f-ace4-65b333bf6074",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
