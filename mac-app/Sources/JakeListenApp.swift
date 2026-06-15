@@ -31,7 +31,7 @@ struct JakeListenApp: App {
         } label: {
             Image(systemName: model.state == .recording ? "record.circle.fill" : "dog.fill")
         }
-        .menuBarExtraStyle(.window)
+        .menuBarExtraStyle(.menu)
     }
 }
 

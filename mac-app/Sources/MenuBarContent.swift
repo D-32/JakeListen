@@ -1,70 +1,42 @@
-// MenuBarContent — the popover shown when clicking the menu-bar icon.
-// Quick record/stop plus shortcuts to the window and the recordings folder.
+// MenuBarContent — rendered as a native macOS menu (MenuBarExtra .menu style),
+// so it looks like any system menu-bar item (Tailscale, Wi-Fi, etc.): plain
+// rows that highlight on hover, separators, and ⌘ shortcuts.
 
 import SwiftUI
 
 struct MenuBarContent: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
-    @AppStorage(PrefKey.showMenuBarItem) private var showMenuBarItem = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "dog.fill")
-                Text("JakeListen").font(.headline)
-                Spacer()
-            }
+        // Status line (disabled → greyed info row, like "Connected")
+        Text(statusLine)
 
-            Divider()
-
-            // Big primary action
-            Button(action: model.toggle) {
-                HStack {
-                    Image(systemName: buttonIcon)
-                    Text(buttonLabel)
-                    Spacer()
-                    if model.state == .recording {
-                        Text(model.elapsedText)
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(model.state == .recording ? .red : .accentColor)
+        // Primary action
+        Button(actionLabel) { model.toggle() }
+            .keyboardShortcut("r")
             .disabled(model.state == .processing || model.cliPath == nil)
 
-            Text(model.status)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        Divider()
 
-            Divider()
-
-            Button("Open Window") {
-                openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
-            }
-            Button("Open Recordings Folder", action: model.revealInFinder)
-
-            Button("Hide Menu-Bar Icon") {
-                showMenuBarItem = false
-                openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
-            }
-            .help("Re-enable it from the window toolbar or Settings (⌘,)")
-
-            Divider()
-
-            Button("Quit JakeListen") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
+        Button("Open Window") {
+            openWindow(id: "main")
+            NSApp.activate(ignoringOtherApps: true)
         }
-        .padding(12)
-        .frame(width: 260)
+        Button("Open Recordings Folder") { model.revealInFinder() }
+
+        SettingsLink {
+            Text("Settings…")
+        }
+        .keyboardShortcut(",")
+
+        Divider()
+
+        Button("Quit JakeListen") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
     }
 
-    private var buttonLabel: String {
+    private var actionLabel: String {
         switch model.state {
         case .idle: return "Start Recording"
         case .recording: return "Stop & Process"
@@ -72,11 +44,11 @@ struct MenuBarContent: View {
         }
     }
 
-    private var buttonIcon: String {
+    private var statusLine: String {
         switch model.state {
-        case .idle: return "record.circle"
-        case .recording: return "stop.circle.fill"
-        case .processing: return "hourglass"
+        case .recording: return "● Recording — \(model.elapsedText)"
+        case .processing: return model.status
+        case .idle: return model.cliPath == nil ? "CLI not found" : "Ready"
         }
     }
 }

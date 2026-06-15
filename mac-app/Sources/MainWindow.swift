@@ -5,7 +5,6 @@ import SwiftUI
 
 struct MainWindow: View {
     @EnvironmentObject var model: AppModel
-    @AppStorage(PrefKey.showMenuBarItem) private var showMenuBarItem = true
 
     var body: some View {
         NavigationSplitView {
@@ -160,12 +159,6 @@ struct MainWindow: View {
             Button(action: model.refresh) {
                 Label("Refresh", systemImage: "arrow.clockwise")
             }
-        }
-        ToolbarItem(placement: .automatic) {
-            Toggle(isOn: $showMenuBarItem) {
-                Label("Menu-bar icon", systemImage: "menubar.rectangle")
-            }
-            .help("Show or hide the menu-bar icon")
         }
     }
 
