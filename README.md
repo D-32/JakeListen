@@ -4,6 +4,8 @@ A lightweight command-line tool for macOS that records a call, transcribes it, a
 
 Named after Jake the dog.
 
+🌐 **Website:** [jakelisten.com](https://jakelisten.com)
+
 ![JakeListen: a golden retriever in headphones taking notes at a desk](jakelisten.jpg)
 
 > **100% AI-generated.** Every line of this project (the CLI, the Swift audio helper, the installer, and this README) was written by AI.
