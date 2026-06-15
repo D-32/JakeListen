@@ -26,10 +26,15 @@ final class AppModel: ObservableObject {
     @Published var selectedID: Recording.ID?
     @Published var cliPath: String?
 
+    // Post-record Slack prompt (only when slackcli is installed).
+    @Published var showPostPrompt = false
+    @Published var postChannel = ""
+
     private var process: Process?
     private var stdinHandle: FileHandle?
     private var timer: Timer?
     private var startedAt: Date?
+    private var lastFinished: Recording?
 
     init() {
         cliPath = Self.resolveCLI()
@@ -86,7 +91,9 @@ final class AppModel: ObservableObject {
 
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: cli)
-        proc.arguments = ["record"]
+        // --no-slack: the GUI can't answer the CLI's interactive Slack prompt,
+        // so it would hang in "Processing…". We post separately via the sheet.
+        proc.arguments = ["record", "--no-slack"]
 
         // Ensure node / ffmpeg / the syscap helper resolve from a GUI context.
         var env = ProcessInfo.processInfo.environment
@@ -151,6 +158,47 @@ final class AppModel: ObservableObject {
         refresh()
         // Auto-select the newest recording so the user sees the result.
         selectedID = recordings.first?.id
+        lastFinished = recordings.first
+        // Offer to post to Slack only if it's installed and there's a summary.
+        if Self.slackAvailable(), let rec = lastFinished, rec.hasSummary {
+            postChannel = ""
+            showPostPrompt = true
+        }
+    }
+
+    /// Is the Slack CLI installed? Posting is routed through `jakelisten post`,
+    /// but we only prompt when the user actually has slackcli.
+    private static func slackAvailable() -> Bool {
+        ["/opt/homebrew/bin/slackcli", "/usr/local/bin/slackcli"]
+            .contains { FileManager.default.isExecutableFile(atPath: $0) }
+    }
+
+    /// Post the most recent recording's summary to a Slack channel via the CLI's
+    /// scriptable `post` command (which resolves channel names → ids).
+    func postSelectedToSlack(channel: String) {
+        let ch = channel.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !ch.isEmpty, let rec = lastFinished, let cli = cliPath else { return }
+        status = "Posting to \(ch)…"
+
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: cli)
+        proc.arguments = ["post", rec.summaryURL.path, ch]
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + (env["PATH"] ?? "")
+        proc.environment = env
+
+        proc.terminationHandler = { [weak self] p in
+            DispatchQueue.main.async {
+                self?.status = p.terminationStatus == 0
+                    ? "Posted to \(ch)"
+                    : "Slack post failed — see Terminal/CLI"
+            }
+        }
+        do {
+            try proc.run()
+        } catch {
+            status = "Slack post failed: \(error.localizedDescription)"
+        }
     }
 
     /// Strip ANSI color codes and keep the last meaningful line as the status.

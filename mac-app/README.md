@@ -66,13 +66,16 @@ enable JakeListen.
 
 ## Slack
 
-Slack posting is handled entirely by the CLI. With `slackcli` absent the run is
-fully non-interactive (nothing to click). For automatic posting, set
-`autoPostSlack: true` and `slackRecipient` in the CLI config
-(`jakelisten config`) — the GUI then posts without prompting.
+The app records with `jakelisten record --no-slack`, so the CLI never blocks on
+its interactive Slack prompt. Instead, **if `slackcli` is installed**, the app
+shows a small "Post summary to Slack?" sheet after each recording — enter a
+channel (name or id) and **Post**, or **Skip**. Posting is routed through the
+CLI's scriptable `jakelisten post <summary-file> <channel>` command, so channel
+name → id resolution stays in one place.
+
+If `slackcli` isn't installed, no prompt appears — the transcript/summary are
+just saved locally.
 
 ## Notes / limitations
 
 - This is a wrapper, not a reimplementation; CLI behavior is the source of truth.
-- It targets the common non-interactive path. If you use interactive Slack
-  prompts, run those from the terminal CLI.

@@ -881,6 +881,20 @@ function postToSlack(recipient, message) {
   );
 }
 
+// Scriptable Slack post: resolve a channel name/id and post a saved summary.
+// Used by the GUI (which can't answer the interactive prompt) and handy on its own.
+function cmdPost(cfg, file, channelInput) {
+  if (!existsSync(file)) die(`File not found: ${file}`);
+  if (!hasBin("slackcli")) die("slackcli not found.");
+  const summary = readFileSync(file, "utf8");
+  const displayName = basename(file).replace(/\.summary\.txt$/, "");
+  const ch = resolveSlackChannel(channelInput);
+  if (!ch || ch.ambiguous) die(`Could not resolve channel "${channelInput}".`);
+  const header = `:dog: *Call summary* (${displayName})\n\n`;
+  postToSlack(ch.id, header + summary);
+  log(c.green(`✓ Posted to #${ch.name} (${ch.id}).`));
+}
+
 // ---------- flows ----------
 async function processFile(cfg, input, { interactive = true } = {}) {
   // Derive a clean base name + display name from whichever input we got.
@@ -1210,6 +1224,8 @@ function help() {
 ${c.bold("Usage:")}
   jakelisten                Menu: start recording, or process a recent recording
   jakelisten record         Record a call, then transcribe + summarize + (optionally) post to Slack
+  jakelisten record --no-slack  Record + process, but skip the Slack prompt (used by the GUI)
+  jakelisten post <f> <ch>  Post a saved <summary-file> to Slack <channel> (name or id)
   jakelisten process        Pick a recent recording and (re)process it — retry after a failure
   jakelisten transcribe <f> Process an existing audio file
   jakelisten permission     Grant macOS system-audio recording (one-time, no BlackHole)
@@ -1232,7 +1248,17 @@ async function main() {
       case "record": {
         cfg = await ensureConfigured(cfg);
         const recorded = await recordCall(cfg);
-        await processFile(cfg, recorded);
+        await processFile(cfg, recorded, {
+          interactive: !rest.includes("--no-slack"),
+        });
+        break;
+      }
+      case "post": {
+        const [file, channel] = rest;
+        if (!file || !channel)
+          die("Usage: jakelisten post <summary-file> <channel>");
+        cfg = await ensureConfigured(cfg);
+        cmdPost(cfg, file, channel);
         break;
       }
       case "process":

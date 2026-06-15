@@ -14,6 +14,31 @@ struct MainWindow: View {
             detail
         }
         .toolbar { toolbarContent }
+        .sheet(isPresented: $model.showPostPrompt) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Post summary to Slack?").font(.headline)
+                Text("Optional. Enter a channel, or skip.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextField("#channel", text: $model.postChannel)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 240)
+                    .onSubmit(post)
+                HStack {
+                    Spacer()
+                    Button("Skip") { model.showPostPrompt = false }
+                    Button("Post", action: post)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.postChannel.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .padding(20)
+            .frame(width: 320)
+        }
+    }
+
+    private func post() {
+        model.postSelectedToSlack(channel: model.postChannel)
+        model.showPostPrompt = false
     }
 
     // MARK: - Sidebar
