@@ -26,23 +26,6 @@ version.
 - **Speaker names** — tell JakeListen who's usually on your calls so it labels
   speakers by name instead of "Speaker 1/2."
 
-## Install — no terminal needed
-
-For non-technical users:
-
-1. [Download the project](https://github.com/D-32/JakeListen) (green **Code →
-   Download ZIP**) and unzip it.
-2. Open the `mac-app` folder and **right-click `install.command` → Open → Open**
-   (right-click the first time so macOS lets it run).
-3. It installs everything (Homebrew, Node, ffmpeg, the `jakelisten` command),
-   builds the app, and puts **JakeListen** in your Applications folder. macOS may
-   ask for your Mac password once — that's just letting Homebrew install. You
-   don't type any commands.
-4. JakeListen opens and walks you through your **Google API key** (see below).
-
-Prefer just the app? Run `./make-dmg.sh` to produce a drag-to-Applications
-`build/JakeListen.dmg` (the app still needs the CLI + Node + ffmpeg).
-
 ## Getting a Google Gemini API key
 
 JakeListen uses Google's Gemini AI to transcribe and summarize. The app's
@@ -68,8 +51,8 @@ cd mac-app
 ./build.sh --run     # compiles build/JakeListen.app with swiftc and launches it
 ```
 
-The CLI must be installed too (repo root `./install.sh`, or the `install.command`
-above). Drag `build/JakeListen.app` into `/Applications` to keep it.
+The CLI must be installed too (repo root `./install.sh`). Drag
+`build/JakeListen.app` into `/Applications` to keep it.
 
 ## How it works
 
