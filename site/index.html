@@ -164,7 +164,7 @@
     font-weight:800;background:var(--gold);color:var(--ink-btn);font-size:15px;font-family:var(--mono)}
   .step h3{margin:11px 0 6px;font-size:16.5px;font-family:var(--serif)}
   .step p{margin:0;color:var(--ink-soft);font-size:14.5px}
-  .step code{font-family:var(--mono);font-size:13px;background:#efe7d5;padding:1px 5px;border-radius:4px;color:#5b4a26}
+  code{font-family:var(--mono);font-size:13px;background:#efe7d5;padding:1px 5px;border-radius:4px;color:#5b4a26}
   pre{background:#211d17;border:1px solid #3a3326;border-radius:12px;padding:20px 22px;overflow:auto;
     font-family:var(--mono);font-size:13.5px;color:#e8dcc4;margin:30px 0 0;line-height:1.75}
   pre .c{color:#9b9079}
@@ -199,7 +199,7 @@
       <h1>Your calls, written&nbsp;down and <span class="mark">summarised</span>.</h1>
       <p class="sub">JakeListen quietly records both sides of a call, transcribes it with speaker names, and hands you a tidy summary the moment you hang up. No virtual audio driver, no faff.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest" target="_blank" rel="noopener">↓ Download v0.6</a>
+        <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest" target="_blank" rel="noopener">↓ Download for macOS</a>
         <a class="btn btn-ghost" href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">View source on GitHub</a>
       </div>
       <p class="hero-note">macOS 14.2+ · Bring your own Gemini key · MIT licensed</p>
@@ -349,24 +349,17 @@
 <section id="install">
   <div class="wrap">
     <div class="eyebrow">Get started</div>
-    <h2 class="title">Up and running in a minute.</h2>
-    <p class="lead">Grab a free Gemini key, run the installer, and you're set. It builds the audio helper and walks you through the one-time macOS permission.</p>
+    <h2 class="title">Download, open, done.</h2>
+    <p class="lead">One installer package sets up everything: the app, the audio helper, and all its dependencies. No Homebrew, no terminal, no faff.</p>
 
     <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Prerequisites</h3><p>Homebrew, then <code>brew install node ffmpeg</code> and the Xcode Command Line Tools.</p></div>
-      <div class="step"><div class="n">2</div><h3>Run the installer</h3><p><code>./install.sh</code> builds the helper, links the command, and asks for your Gemini key.</p></div>
-      <div class="step"><div class="n">3</div><h3>Allow once</h3><p>Grant system-audio recording from Terminal.app. That's the whole setup.</p></div>
-      <div class="step"><div class="n">4</div><h3>Record</h3><p>Run <code>jakelisten</code>, take your call, press Return. Transcript + summary appear.</p></div>
+      <div class="step"><div class="n">1</div><h3>Download the installer</h3><p>Grab the <code>.pkg</code>, double-click it, and follow the prompts. It bundles everything JakeListen needs.</p></div>
+      <div class="step"><div class="n">2</div><h3>Launch JakeListen</h3><p>Open the app and click Allow when macOS asks for microphone and system-audio access.</p></div>
+      <div class="step"><div class="n">3</div><h3>Pop in your Gemini key</h3><p>On first launch JakeListen asks for your free Gemini key. Paste it once and you're set.</p></div>
+      <div class="step"><div class="n">4</div><h3>Record</h3><p>Hit record from the menu bar or window. Your transcript and summary appear when you stop.</p></div>
     </div>
 
-<pre><span class="c"># Download the latest release, then from the JakeListen folder:</span>
-<span class="k">./install.sh</span>
-
-<span class="c"># Record a call (press Return to stop and process)</span>
-<span class="k">jakelisten</span>
-
-<span class="c"># Prefer a GUI? Build the menu-bar app:</span>
-cd mac-app &amp;&amp; <span class="k">./build.sh --run</span></pre>
+    <p style="margin-top:26px;color:var(--ink-soft);font-size:15px">Prefer the command line? The <a href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">CLI</a> is still there. Clone the repo and run <code>./install.sh</code>.</p>
   </div>
 </section>
 
