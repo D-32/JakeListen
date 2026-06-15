@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JakeListen — record, transcribe & summarize your calls</title>
 <meta name="description" content="A lightweight macOS tool that records a call, transcribes it, and writes a short summary. Captures both sides of the call with no virtual audio driver. Proudly 100% AI-generated.">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="1024x1024" href="icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="JakeListen — record, transcribe & summarize your calls">
+<meta property="og:description" content="A lightweight macOS tool that records both sides of a call, transcribes it, and writes a tidy summary. Proudly 100% AI-generated.">
+<meta property="og:image" content="icon.png">
 <style>
   :root{
     --paper:#f6f1e7;
@@ -38,7 +44,7 @@
     backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.01em}
-  .brand .dot{font-size:22px;filter:saturate(1.1)}
+  .brand .logo{width:30px;height:30px;border-radius:8px;display:block;box-shadow:0 2px 6px -2px rgba(60,45,20,.5)}
   .nav-links{display:flex;gap:24px;align-items:center;font-size:14.5px}
   .nav-links a:not(.btn){color:var(--ink-soft);text-decoration:none;font-weight:600}
   .nav-links a:not(.btn):hover{color:var(--ink)}
@@ -175,7 +181,7 @@
 
 <nav>
   <div class="wrap">
-    <div class="brand"><span class="dot">🐕</span> JakeListen</div>
+    <div class="brand"><img class="logo" src="icon.png" alt="JakeListen icon"> JakeListen</div>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#app">The app</a>
@@ -367,7 +373,7 @@ cd mac-app &amp;&amp; <span class="k">./build.sh --run</span></pre>
 <footer>
   <div class="wrap">
     <div>
-      <div class="brand" style="margin-bottom:6px"><span class="dot">🐕</span> JakeListen</div>
+      <div class="brand" style="margin-bottom:6px"><img class="logo" src="icon.png" alt="JakeListen icon"> JakeListen</div>
       <div>Named after Jake the dog. 🦴</div>
       <span class="badge-ai">🤖 100% AI slop, and proud of it</span>
     </div>
