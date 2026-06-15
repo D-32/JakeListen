@@ -623,6 +623,21 @@ function promptFor(mode, cfg) {
   // "Me (Name)" label; otherwise fall back to a plain "Me".
   const meLabel = cfg.userName ? `Me (${cfg.userName})` : "Me";
   const iAm = cfg.userName ? ` I am ${cfg.userName}.` : "";
+  // Optional list of likely participants — helps diarization use real names
+  // instead of "Speaker 1/2". Accepts an array or a comma-separated string.
+  const people = (
+    Array.isArray(cfg.participants)
+      ? cfg.participants
+      : String(cfg.participants || "").split(",")
+  )
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const peopleHint = people.length
+    ? `\n\nLikely participants on this call: ${people.join(", ")}. ` +
+      "When a voice clearly corresponds to one of them (named, addressed, or " +
+      "self-introduced), use that exact name as the speaker label; otherwise " +
+      "fall back to 'Speaker 1', 'Speaker 2', etc."
+    : "";
   const format =
     "Output ONLY transcript lines, one utterance per line, in EXACTLY this format:\n" +
     "[mm:ss] <Speaker>: <text>\n" +
@@ -646,6 +661,7 @@ function promptFor(mode, cfg) {
       "speaker. If a speaker is named or addressed by name, use that name; otherwise label them " +
       "'Speaker 1', 'Speaker 2', etc., consistently throughout. Do NOT label anyone 'Me'.\n\n" +
       format +
+      peopleHint +
       ctx
     );
   }
@@ -656,6 +672,7 @@ function promptFor(mode, cfg) {
     "name; otherwise label them 'Speaker 1', 'Speaker 2', etc., consistently. " +
     `Label my own voice as '${meLabel}' where you can tell.\n\n` +
     format +
+    peopleHint +
     ctx
   );
 }
@@ -1225,6 +1242,7 @@ ${c.bold("Usage:")}
   jakelisten                Menu: start recording, or process a recent recording
   jakelisten record         Record a call, then transcribe + summarize + (optionally) post to Slack
   jakelisten record --no-slack  Record + process, but skip the Slack prompt (used by the GUI)
+  jakelisten record --speakers "A, B"  Hint likely participants so names are guessed better
   jakelisten post <f> <ch>  Post a saved <summary-file> to Slack <channel> (name or id)
   jakelisten process        Pick a recent recording and (re)process it — retry after a failure
   jakelisten transcribe <f> Process an existing audio file
@@ -1233,6 +1251,14 @@ ${c.bold("Usage:")}
   jakelisten setup          Check configuration & devices
   jakelisten config         Set Gemini key, devices, default Slack recipient
   jakelisten help           Show this help`);
+}
+
+// Pull a "--flag value" (or "--flag=value") out of the remaining argv.
+function flagValue(rest, name) {
+  const i = rest.indexOf(name);
+  if (i >= 0 && rest[i + 1] && !rest[i + 1].startsWith("--")) return rest[i + 1];
+  const eq = rest.find((a) => a.startsWith(name + "="));
+  return eq ? eq.slice(name.length + 1) : null;
 }
 
 // ---------- main ----------
@@ -1247,6 +1273,8 @@ async function main() {
         break;
       case "record": {
         cfg = await ensureConfigured(cfg);
+        const speakers = flagValue(rest, "--speakers");
+        if (speakers) cfg.participants = speakers;
         const recorded = await recordCall(cfg);
         await processFile(cfg, recorded, {
           interactive: !rest.includes("--no-slack"),
@@ -1268,8 +1296,10 @@ async function main() {
       case "transcribe": {
         const f = rest[0];
         if (!f || !existsSync(f))
-          die("Usage: jakelisten transcribe <audio-file>");
+          die("Usage: jakelisten transcribe <audio-file> [--speakers \"A, B\"]");
         cfg = await ensureConfigured(cfg);
+        const speakers = flagValue(rest, "--speakers");
+        if (speakers) cfg.participants = speakers;
         await processFile(cfg, f);
         break;
       }
