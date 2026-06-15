@@ -21,6 +21,7 @@ echo "Building JakeListen.app ($ARCH, macOS $MIN_OS+)…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$DIR/Info.plist" "$APP/Contents/Info.plist"
+[ -f "$DIR/AppIcon.icns" ] && cp "$DIR/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 swiftc -O \
     -target "${ARCH}-apple-macos${MIN_OS}" \

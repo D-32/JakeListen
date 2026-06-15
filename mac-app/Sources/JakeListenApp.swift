@@ -38,4 +38,5 @@ struct JakeListenApp: App {
 /// Centralized preference keys so the App and views stay in sync.
 enum PrefKey {
     static let showMenuBarItem = "showMenuBarItem"
+    static let participants = "participants"
 }

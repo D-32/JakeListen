@@ -21,26 +21,55 @@ version.
   go to the Trash, so it's recoverable.
 - **Hideable menu-bar icon** — turn it off from the menu-bar popover, the window
   toolbar, or Settings (⌘,), and back on the same way.
+- **In-app first-run setup** — paste your Google API key and set usual
+  participants right in the app (no editing config files).
+- **Speaker names** — tell JakeListen who's usually on your calls so it labels
+  speakers by name instead of "Speaker 1/2."
 
-## Requirements
+## Install — no terminal needed
 
-The GUI is a thin wrapper, so you need the CLI working first:
+For non-technical users:
 
-1. Install the CLI from the repo root: `./install.sh`
-2. Confirm it's healthy: `jakelisten setup`
+1. [Download the project](https://github.com/D-32/JakeListen) (green **Code →
+   Download ZIP**) and unzip it.
+2. Open the `mac-app` folder and **right-click `install.command` → Open → Open**
+   (right-click the first time so macOS lets it run).
+3. It installs everything (Homebrew, Node, ffmpeg, the `jakelisten` command),
+   builds the app, and puts **JakeListen** in your Applications folder. macOS may
+   ask for your Mac password once — that's just letting Homebrew install. You
+   don't type any commands.
+4. JakeListen opens and walks you through your **Google API key** (see below).
 
-Build requirements: macOS 14.2+ and the **Xcode Command Line Tools**
+Prefer just the app? Run `./make-dmg.sh` to produce a drag-to-Applications
+`build/JakeListen.dmg` (the app still needs the CLI + Node + ffmpeg).
+
+## Getting a Google Gemini API key
+
+JakeListen uses Google's Gemini AI to transcribe and summarize. The app's
+first-run screen has this same guide with a button that opens the page:
+
+1. Go to **https://aistudio.google.com/apikey**
+2. Sign in with any Google account.
+3. Click **Create API key** and accept the terms if prompted.
+4. Choose **Create API key in a new project** (simplest).
+5. Click **Copy**, then paste the key (it starts with `AIza`) into JakeListen.
+
+**Cost:** Gemini has a **free tier** that's plenty for personal call summaries.
+You don't need to pay to start. If you later need higher limits, enable billing
+on the Google Cloud project tied to your key. Keep your key private.
+
+## Build from source (developers)
+
+Requirements: macOS 14.2+ and the **Xcode Command Line Tools**
 (`xcode-select --install`). A full Xcode install is **not** required.
-
-## Build & run
 
 ```bash
 cd mac-app
-./build.sh --run
+./build.sh --run     # compiles build/JakeListen.app with swiftc and launches it
 ```
 
-This compiles `build/JakeListen.app` with `swiftc` and launches it. To install it
-permanently, drag `build/JakeListen.app` into `/Applications`.
+The CLI must be installed too (repo root `./install.sh`, or the `install.command`
+above). Drag `build/JakeListen.app` into `/Applications` to keep it.
 
 ## How it works
 

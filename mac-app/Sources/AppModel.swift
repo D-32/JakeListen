@@ -30,6 +30,10 @@ final class AppModel: ObservableObject {
     @Published var showPostPrompt = false
     @Published var postChannel = ""
 
+    // Onboarding / API key (stored in the CLI's config so both share it).
+    @Published var hasAPIKey = false
+    @Published var showOnboarding = false
+
     private var process: Process?
     private var stdinHandle: FileHandle?
     private var timer: Timer?
@@ -39,9 +43,44 @@ final class AppModel: ObservableObject {
     init() {
         cliPath = Self.resolveCLI()
         if cliPath == nil {
-            status = "jakelisten CLI not found — run install.sh first"
+            status = "jakelisten CLI not found — run the installer first"
         }
+        refreshConfigState()
+        showOnboarding = !hasAPIKey
         refresh()
+    }
+
+    // MARK: - Config (~/.jakelisten/config.json — shared with the CLI)
+
+    private var configURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".jakelisten/config.json")
+    }
+
+    private func readConfig() -> [String: Any] {
+        guard let data = try? Data(contentsOf: configURL),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return [:] }
+        return obj
+    }
+
+    func refreshConfigState() {
+        let key = (readConfig()["geminiApiKey"] as? String) ?? ""
+        hasAPIKey = !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Persist the Gemini API key into the CLI's config (creating the dir/file).
+    func saveAPIKey(_ key: String) {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var cfg = readConfig()
+        cfg["geminiApiKey"] = trimmed
+        let dir = configURL.deletingLastPathComponent()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let data = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted]) {
+            try? data.write(to: configURL)
+        }
+        refreshConfigState()
     }
 
     var selected: Recording? {
@@ -93,7 +132,13 @@ final class AppModel: ObservableObject {
         proc.executableURL = URL(fileURLWithPath: cli)
         // --no-slack: the GUI can't answer the CLI's interactive Slack prompt,
         // so it would hang in "Processing…". We post separately via the sheet.
-        proc.arguments = ["record", "--no-slack"]
+        var args = ["record", "--no-slack"]
+        // Optional participant hint → better name guessing in the transcript.
+        let people = UserDefaults.standard
+            .string(forKey: PrefKey.participants)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !people.isEmpty { args += ["--speakers", people] }
+        proc.arguments = args
 
         // Ensure node / ffmpeg / the syscap helper resolve from a GUI context.
         var env = ProcessInfo.processInfo.environment

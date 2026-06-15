@@ -34,6 +34,9 @@ struct MainWindow: View {
             .padding(20)
             .frame(width: 320)
         }
+        .sheet(isPresented: $model.showOnboarding) {
+            OnboardingView().environmentObject(model)
+        }
     }
 
     private func post() {
