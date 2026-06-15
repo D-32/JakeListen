@@ -1,7 +1,7 @@
 {
   "name": "jakelisten",
   "version": "0.6.0",
-  "description": "Record calls, transcribe + summarize with Gemini, post to Slack. Named after Jake the dog.",
+  "description": "Record calls, transcribe + summarise with Gemini, post to Slack. Named after Jake the dog.",
   "type": "module",
   "bin": {
     "jakelisten": "./jakelisten.js"

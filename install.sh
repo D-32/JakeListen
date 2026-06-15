@@ -12,7 +12,7 @@ err()  { printf '%s✗%s %s\n' "$RED" "$RST" "$*"; }
 step() { printf '\n%s── %s ──%s\n' "$BOLD" "$*" "$RST"; }
 
 say "${BOLD}🐕 JakeListen installer${RST}"
-say "${DIM}Records video calls, transcribes + summarizes with Gemini, posts to Slack.${RST}"
+say "${DIM}Records video calls, transcribes + summarises with Gemini, posts to Slack.${RST}"
 
 # ---------- prerequisites ----------
 step "Checking prerequisites"
@@ -101,7 +101,7 @@ NO virtual audio driver and NO Multi-Output Device to set up. Just grant permiss
   often don't show the prompt. The double-click launcher uses Terminal.app, so granting
   it here is exactly what the launcher needs.
 
-  - A dialog will ask to allow audio recording — click Allow.
+  - A dialogue will ask to allow audio recording — click Allow.
   - If you miss it: System Settings → Privacy & Security → "Screen & System Audio
     Recording" → scroll to "System Audio Recording Only" → enable Terminal.
 

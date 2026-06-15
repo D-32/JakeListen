@@ -802,8 +802,8 @@ async function buildTranscript(cfg, input) {
   return renderTranscript(all);
 }
 
-async function summarize(cfg, transcript) {
-  log(c.dim("✎ Summarizing..."));
+async function summarise(cfg, transcript) {
+  log(c.dim("✎ Summarising..."));
   return geminiGenerate(cfg, [
     {
       text:
@@ -891,13 +891,13 @@ async function processFile(cfg, input, { interactive = true } = {}) {
   const sPath = base + ".summary.txt";
 
   const transcript = await buildTranscript(cfg, input);
-  // Save immediately — a summarize failure must not lose the transcript.
+  // Save immediately — a summarise failure must not lose the transcript.
   writeFileSync(tPath, transcript);
   if (!transcript.trim()) {
-    log(c.yellow("No speech detected — nothing to summarize."));
+    log(c.yellow("No speech detected — nothing to summarise."));
     return { transcript, summary: "", tPath, sPath: null };
   }
-  const summary = await summarize(cfg, transcript);
+  const summary = await summarise(cfg, transcript);
   writeFileSync(sPath, summary);
 
   log("");
@@ -1166,7 +1166,7 @@ function cmdPermission() {
   }
   log(
     c.dim(
-      "Requesting macOS system-audio recording permission — click Allow if a dialog appears...",
+      "Requesting macOS system-audio recording permission — click Allow if a dialogue appears...",
     ),
   );
   let status = "denied";
@@ -1205,11 +1205,11 @@ function hasBin(name) {
 }
 
 function help() {
-  log(`${c.bold("🐕 JakeListen")} ${c.dim(`v${VERSION}`)} — record calls, transcribe + summarize with Gemini, post to Slack
+  log(`${c.bold("🐕 JakeListen")} ${c.dim(`v${VERSION}`)} — record calls, transcribe + summarise with Gemini, post to Slack
 
 ${c.bold("Usage:")}
   jakelisten                Menu: start recording, or process a recent recording
-  jakelisten record         Record a call, then transcribe + summarize + (optionally) post to Slack
+  jakelisten record         Record a call, then transcribe + summarise + (optionally) post to Slack
   jakelisten process        Pick a recent recording and (re)process it — retry after a failure
   jakelisten transcribe <f> Process an existing audio file
   jakelisten permission     Grant macOS system-audio recording (one-time, no BlackHole)
