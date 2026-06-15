@@ -187,7 +187,7 @@
       <a href="#app">The app</a>
       <a href="#install">Install</a>
       <a href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">GitHub ↗</a>
-      <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest" target="_blank" rel="noopener">Download</a>
+      <a class="btn btn-primary" href="#install">Get it</a>
     </div>
   </div>
 </nav>
@@ -199,7 +199,7 @@
       <h1>Your calls, written&nbsp;down and <span class="mark">summarised</span>.</h1>
       <p class="sub">JakeListen quietly records both sides of a call, transcribes it with speaker names, and hands you a tidy summary the moment you hang up. No virtual audio driver, no faff.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest" target="_blank" rel="noopener">↓ Download for macOS</a>
+        <a class="btn btn-primary" href="#install">Get JakeListen</a>
         <a class="btn btn-ghost" href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">View source on GitHub</a>
       </div>
       <p class="hero-note">macOS 14.2+ · Bring your own Gemini key · MIT licensed</p>
@@ -349,17 +349,21 @@
 <section id="install">
   <div class="wrap">
     <div class="eyebrow">Get started</div>
-    <h2 class="title">Download, open, done.</h2>
-    <p class="lead">One installer package sets up everything: the app, the audio helper, and all its dependencies. No Homebrew, no terminal, no faff.</p>
+    <h2 class="title">Just point Claude Code at it.</h2>
+    <p class="lead">JakeListen was written entirely by AI, so why install it like it's 2015? No packages, no installers. Open <a href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener">Claude Code</a> (or your coding agent of choice), paste the prompt below, and it'll clone the repo, sort out the dependencies, build the audio helper, and launch the app for you.</p>
+
+<pre><span class="c"># paste this into Claude Code:</span>
+Install JakeListen from github.com/D-32/JakeListen
+and launch it on my Mac.</pre>
 
     <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Download the installer</h3><p>Grab the <code>.pkg</code>, double-click it, and follow the prompts. It bundles everything JakeListen needs.</p></div>
-      <div class="step"><div class="n">2</div><h3>Launch JakeListen</h3><p>Open the app and click Allow when macOS asks for microphone and system-audio access.</p></div>
+      <div class="step"><div class="n">1</div><h3>Open Claude Code</h3><p>Anthropic's agentic CLI, or any coding agent that can run commands on your Mac.</p></div>
+      <div class="step"><div class="n">2</div><h3>Paste the prompt</h3><p>It works out Homebrew, ffmpeg, the Swift helper, and the macOS permissions on its own.</p></div>
       <div class="step"><div class="n">3</div><h3>Pop in your Gemini key</h3><p>On first launch JakeListen asks for your free Gemini key. Paste it once and you're set.</p></div>
       <div class="step"><div class="n">4</div><h3>Record</h3><p>Hit record from the menu bar or window. Your transcript and summary appear when you stop.</p></div>
     </div>
 
-    <p style="margin-top:26px;color:var(--ink-soft);font-size:15px">Prefer the command line? The <a href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">CLI</a> is still there. Clone the repo and run <code>./install.sh</code>.</p>
+    <p style="margin-top:26px;color:var(--ink-soft);font-size:15px">Rather do it by hand? The full manual steps live in the <a href="https://github.com/D-32/JakeListen#install" target="_blank" rel="noopener">README</a>.</p>
   </div>
 </section>
 
