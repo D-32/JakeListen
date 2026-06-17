@@ -11,6 +11,7 @@
 
 import Foundation
 import SwiftUI
+import AppKit
 
 enum RecState: Equatable {
     case idle
@@ -42,6 +43,7 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private var startedAt: Date?
     private var lastFinished: Recording?
+    private var starting = false  // guards the async permission pre-flight
 
     init() {
         cliPath = Self.resolveCLI()
@@ -118,6 +120,64 @@ final class AppModel: ObservableObject {
         return out.isEmpty ? nil : out
     }
 
+    // MARK: - System-audio permission (so we never silently record nothing)
+
+    enum AudioPermission { case authorized, denied, noHelper }
+    private enum PermissionIssue { case systemAudio, noHelper }
+
+    /// The system-audio capture helper sits next to the resolved CLI script
+    /// (the `jakelisten` command is a symlink into the install dir).
+    private var syscapPath: String? {
+        guard let cli = cliPath else { return nil }
+        let real = URL(fileURLWithPath: cli).resolvingSymlinksInPath()
+        let helper = real.deletingLastPathComponent().appendingPathComponent("jakelisten-syscap")
+        return FileManager.default.isExecutableFile(atPath: helper.path) ? helper.path : nil
+    }
+
+    /// Ask the helper whether system-audio recording is authorized. When the
+    /// status is undetermined this also triggers the one-time macOS prompt —
+    /// the helper runs in our GUI session, so the dialog can actually appear.
+    private func checkSystemAudioPermission() -> AudioPermission {
+        guard let helper = syscapPath else { return .noHelper }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: helper)
+        p.arguments = ["--check-permission"]
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = FileHandle.nullDevice
+        do { try p.run() } catch { return .denied }
+        p.waitUntilExit()
+        let s = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return s == "authorized" ? .authorized : .denied
+    }
+
+    private func presentPermissionAlert(_ issue: PermissionIssue) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        switch issue {
+        case .systemAudio:
+            alert.messageText = "JakeListen can't record the call audio yet"
+            alert.informativeText = """
+                macOS hasn't granted system-audio recording, so only your microphone would be captured — the other side of the call would be missing.
+
+                Enable JakeListen under System Settings ▸ Privacy & Security ▸ Screen & System Audio Recording, then hit record again.
+                """
+            alert.addButton(withTitle: "Open System Settings")
+            alert.addButton(withTitle: "Cancel")
+        case .noHelper:
+            alert.messageText = "System-audio helper not found"
+            alert.informativeText = "JakeListen can record your microphone but not the call audio until the capture helper is installed. Reinstall JakeListen to restore call recording."
+            alert.addButton(withTitle: "OK")
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        let resp = alert.runModal()
+        if issue == .systemAudio, resp == .alertFirstButtonReturn,
+           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     // MARK: - Recording control
 
     func toggle() {
@@ -129,6 +189,33 @@ final class AppModel: ObservableObject {
     }
 
     func start() {
+        guard state == .idle, !starting, cliPath != nil else { return }
+        starting = true
+        // Pre-flight: never begin a recording that would silently miss the call
+        // audio. Verify system-audio permission first (this also surfaces the
+        // one-time macOS prompt in our GUI session), and only record once it's
+        // granted — otherwise guide the user instead of capturing nothing.
+        status = "Checking audio permission…"
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let perm = self.checkSystemAudioPermission()
+            DispatchQueue.main.async {
+                self.starting = false
+                switch perm {
+                case .authorized:
+                    self.beginRecording()
+                case .denied:
+                    self.status = "Ready"
+                    self.presentPermissionAlert(.systemAudio)
+                case .noHelper:
+                    self.status = "Ready"
+                    self.presentPermissionAlert(.noHelper)
+                }
+            }
+        }
+    }
+
+    private func beginRecording() {
         guard state == .idle, let cli = cliPath else { return }
 
         let proc = Process()
