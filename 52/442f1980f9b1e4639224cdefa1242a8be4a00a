@@ -1,0 +1,24 @@
+syscap/build.sh
+  s_30093b10eb1e71::t_efc2ec04e1ea63 21-23
+scripts/macos-sign.sh
+  s_30093b10eb1e71::t_a983db95d31dcf 1-10,15-20,23-28,31-32,45-46,52-65,76-79,82,84-90
+  s_30093b10eb1e71::t_a054d8c7b02ef4 11-14,21-22,29-30,33-44,47-51,66-75,80-81,83
+mac-app/build.sh
+  s_30093b10eb1e71::t_ee02e58a1f07bf 32-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "52442f1980f9b1e4639224cdefa1242a8be4a00a",
+  "prompts": {},
+  "sessions": {
+    "s_30093b10eb1e71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc8dd09-8557-474f-ace4-65b333bf6074",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
