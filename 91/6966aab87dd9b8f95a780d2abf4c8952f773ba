@@ -1,0 +1,22 @@
+mac-app/Sources/AppModel.swift
+  s_30093b10eb1e71::t_bd70966f117d56 123-180
+  s_30093b10eb1e71::t_698e832f7c35cb 46
+  s_30093b10eb1e71::t_c9e5ee6513b58f 14
+  s_30093b10eb1e71::t_3ad6bb90d36b5d 192-218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "916966aab87dd9b8f95a780d2abf4c8952f773ba",
+  "prompts": {},
+  "sessions": {
+    "s_30093b10eb1e71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc8dd09-8557-474f-ace4-65b333bf6074",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
