@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 
 // ---------- version ----------
-const VERSION = "0.8";
+const VERSION = "0.9";
 
 // ---------- paths & config ----------
 const HOME = homedir();

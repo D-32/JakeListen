@@ -1,6 +1,6 @@
 {
   "name": "jakelisten",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Record calls, transcribe + summarise with Gemini, post to Slack. Named after Jake the dog.",
   "type": "module",
   "bin": {
