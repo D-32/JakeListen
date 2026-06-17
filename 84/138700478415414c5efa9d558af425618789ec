@@ -1,0 +1,23 @@
+mac-app/Info.plist
+  s_30093b10eb1e71::t_1e29a84079281f 18,20
+package.json
+  s_30093b10eb1e71::t_b94fe90f49f702 3
+jakelisten.js
+  s_30093b10eb1e71::t_034cac71ae2a6a 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "84138700478415414c5efa9d558af425618789ec",
+  "prompts": {},
+  "sessions": {
+    "s_30093b10eb1e71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0fc8dd09-8557-474f-ace4-65b333bf6074",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
