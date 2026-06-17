@@ -18,7 +18,8 @@ swiftc -O \
 	-o "$OUT" \
 	-Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker "$DIR/Info.plist"
 
-# Ad-hoc sign so TCC can key the audio-capture grant to this binary.
-codesign --force --sign - "$OUT" 2>/dev/null || true
+# Sign with a stable self-signed identity so the TCC audio-capture grant
+# survives rebuilds (falls back to ad-hoc if the identity can't be created).
+"$DIR/../scripts/macos-sign.sh" "$OUT"
 
 echo "✓ Built $OUT"

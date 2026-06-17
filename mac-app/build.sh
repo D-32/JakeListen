@@ -29,8 +29,9 @@ swiftc -O \
     $(find "$DIR/Sources" -name '*.swift') \
     -o "$APP/Contents/MacOS/JakeListen"
 
-# Ad-hoc sign so TCC can attribute the microphone grant to the app.
-codesign --force --deep --sign - "$APP" 2>/dev/null || true
+# Sign with a stable self-signed identity so TCC microphone/system-audio grants
+# survive rebuilds (falls back to ad-hoc if the identity can't be created).
+"$DIR/../scripts/macos-sign.sh" "$APP"
 
 echo "✓ Built $APP"
 
