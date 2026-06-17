@@ -17,6 +17,10 @@ version.
   click — no terminal needed.
 - **A window** listing every past call with its **summary** and **transcript**.
 - Live elapsed-time and status while recording and processing.
+- **A live input meter** — a scrolling waveform of your microphone while
+  recording, so you can see at a glance that audio is actually coming in. If the
+  mic goes silent it turns amber ("No input detected") and the menu-bar icon
+  shows a ⚠, so a dead mic never goes unnoticed.
 - **Delete** recordings (right-click a call, or select it and press ⌫) — files
   go to the Trash, so it's recoverable.
 - **Hideable menu-bar icon** — turn it off from the menu-bar popover, the window

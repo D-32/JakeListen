@@ -6,6 +6,7 @@ import SwiftUI
 
 struct MenuBarContent: View {
     @EnvironmentObject var model: AppModel
+    @ObservedObject var meter: AudioMeter
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -46,7 +47,9 @@ struct MenuBarContent: View {
 
     private var statusLine: String {
         switch model.state {
-        case .recording: return "● Recording — \(model.elapsedText)"
+        case .recording:
+            if meter.noSignal { return "⚠ No mic input — \(model.elapsedText)" }
+            return "● Recording — \(model.elapsedText)"
         case .processing: return model.status
         case .idle: return model.cliPath == nil ? "CLI not found" : "Ready"
         }
