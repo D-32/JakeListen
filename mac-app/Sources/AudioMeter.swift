@@ -1,17 +1,26 @@
 // AudioMeter — a live microphone input meter for the GUI.
 //
 // The CLI does the real recording (ffmpeg for the mic, the Core Audio tap for
-// the call). This class taps the default input device *in parallel*, purely to
-// measure how loud the mic is right now. Core Audio lets several clients read
-// the same input device, so running alongside the CLI's ffmpeg is fine — we
-// never write any audio anywhere, we only compute levels for the meter.
+// the call). This class taps the mic *in parallel*, purely to measure how loud
+// it is right now. Core Audio lets several clients read the same input device,
+// so running alongside the CLI's ffmpeg is fine — we never write any audio
+// anywhere, we only compute levels for the meter.
+//
+// It meters the *configured* mic (cfg.micDevice — the device the CLI actually
+// records), not just the system default. If they differ and we metered the
+// default, the bars could dance while a different mic is being recorded (or sit
+// flat while the real one works) — misleading in exactly the situation the
+// meter exists to catch. When the configured device can't be resolved we fall
+// back to the system default.
 //
 // Why: without this, the only feedback while recording is an elapsed timer,
 // which keeps ticking even if the mic is muted, unplugged, or grabbing silence.
 // A flat meter tells you *immediately* that nothing is being recorded.
 
 import AVFoundation
+import AudioToolbox
 import Combine
+import CoreAudio
 import SwiftUI
 
 final class AudioMeter: ObservableObject {
@@ -29,6 +38,8 @@ final class AudioMeter: ObservableObject {
     private let engine = AVAudioEngine()
     private var running = false
     private var silentBuffers = 0
+    /// Name of the mic the CLI records (cfg.micDevice); nil → system default.
+    private var preferredDeviceName: String?
 
     // ~21 buffers/sec at 44.1 kHz with a 2048-frame buffer, so these are
     // roughly: anything below -36 dBFS counts as silence, and ~2s of it warns.
@@ -37,8 +48,12 @@ final class AudioMeter: ObservableObject {
 
     // MARK: - Lifecycle
 
-    func start() {
+    /// - Parameter preferredDeviceName: the mic the CLI is configured to record
+    ///   (cfg.micDevice). The meter binds to that device so it reflects what's
+    ///   actually being captured; pass nil to use the system default.
+    func start(preferredDeviceName: String? = nil) {
         guard !running else { return }
+        self.preferredDeviceName = preferredDeviceName
         error = nil
         noSignal = false
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
@@ -75,6 +90,7 @@ final class AudioMeter: ObservableObject {
 
     private func beginTap() {
         let input = engine.inputNode
+        bindConfiguredDevice(on: input)
         let format = input.inputFormat(forBus: 0)
         // A zero sample rate / channel count means there's no usable input.
         guard format.sampleRate > 0, format.channelCount > 0 else {
@@ -90,6 +106,72 @@ final class AudioMeter: ObservableObject {
         } catch {
             fail("Couldn't start audio meter: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Device selection (match the meter to cfg.micDevice)
+
+    /// Point the engine's input at the configured mic before we read its format
+    /// or install the tap. Best-effort: if the device can't be found or the
+    /// property can't be set, we leave the engine on the system default.
+    private func bindConfiguredDevice(on input: AVAudioInputNode) {
+        guard let wanted = preferredDeviceName,
+              let deviceID = inputDeviceID(named: wanted),
+              let unit = input.audioUnit else { return }
+        var dev = deviceID
+        AudioUnitSetProperty(unit,
+                             kAudioOutputUnitProperty_CurrentDevice,
+                             kAudioUnitScope_Global, 0,
+                             &dev, UInt32(MemoryLayout<AudioDeviceID>.size))
+    }
+
+    /// Resolve a device name to an input AudioDeviceID, mirroring the CLI's
+    /// findDevice: exact name first, then a case-insensitive substring match.
+    private func inputDeviceID(named wanted: String) -> AudioDeviceID? {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        let sys = AudioObjectID(kAudioObjectSystemObject)
+        guard AudioObjectGetPropertyDataSize(sys, &addr, 0, nil, &size) == noErr, size > 0
+        else { return nil }
+        var ids = [AudioDeviceID](repeating: 0, count: Int(size) / MemoryLayout<AudioDeviceID>.size)
+        guard AudioObjectGetPropertyData(sys, &addr, 0, nil, &size, &ids) == noErr
+        else { return nil }
+
+        let inputs = ids.filter { hasInputChannels($0) }
+        if let exact = inputs.first(where: { deviceName($0) == wanted }) { return exact }
+        let lower = wanted.lowercased()
+        return inputs.first(where: { deviceName($0).lowercased().contains(lower) })
+    }
+
+    private func deviceName(_ id: AudioDeviceID) -> String {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioObjectPropertyName,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var name: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        guard AudioObjectGetPropertyData(id, &addr, 0, nil, &size, &name) == noErr,
+              let cf = name?.takeRetainedValue() else { return "" }
+        return cf as String
+    }
+
+    private func hasInputChannels(_ id: AudioDeviceID) -> Bool {
+        var addr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreamConfiguration,
+            mScope: kAudioObjectPropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(id, &addr, 0, nil, &size) == noErr, size > 0
+        else { return false }
+        let bufList = UnsafeMutableRawPointer.allocate(byteCount: Int(size),
+                                                       alignment: MemoryLayout<AudioBufferList>.alignment)
+        defer { bufList.deallocate() }
+        guard AudioObjectGetPropertyData(id, &addr, 0, nil, &size, bufList) == noErr
+        else { return false }
+        let list = UnsafeMutableAudioBufferListPointer(bufList.assumingMemoryBound(to: AudioBufferList.self))
+        return list.contains { $0.mNumberChannels > 0 }
     }
 
     private func process(_ buffer: AVAudioPCMBuffer) {
