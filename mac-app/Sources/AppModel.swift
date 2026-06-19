@@ -74,6 +74,14 @@ final class AppModel: ObservableObject {
         hasAPIKey = !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// The mic the CLI is configured to record (cfg.micDevice), so the meter can
+    /// watch the same device. nil → let the meter use the system default.
+    private func configuredMicDevice() -> String? {
+        let name = ((readConfig()["micDevice"] as? String) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
+    }
+
     /// Persist the Gemini API key into the CLI's config (creating the dir/file).
     func saveAPIKey(_ key: String) {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -267,7 +275,7 @@ final class AppModel: ObservableObject {
         elapsed = 0
         state = .recording
         status = "Recording…"
-        meter.start()
+        meter.start(preferredDeviceName: configuredMicDevice())
 
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self, let started = self.startedAt else { return }
