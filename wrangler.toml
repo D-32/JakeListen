@@ -1,0 +1,12 @@
+# Cloudflare deploy for jakelisten.com — serves the static site/ directory as a
+# Workers Static Assets deployment. Deploy with:  wrangler deploy
+name = "little-limit-bf7e"
+compatibility_date = "2026-07-01"
+
+[assets]
+directory = "./site"
+
+# Keep the apex domain mapped to this worker.
+[[routes]]
+pattern = "jakelisten.com"
+custom_domain = true
