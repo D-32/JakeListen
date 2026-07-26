@@ -1,391 +1,169 @@
-// AppModel — drives the JakeListen CLI and exposes recording state to the UI.
-//
-// The GUI is a thin wrapper around the `jakelisten` command-line tool:
-//   • Start  → spawn `jakelisten record` (begins recording immediately).
-//   • Stop   → write a newline to its stdin, which the CLI treats as "Enter"
-//              and uses to stop recording and run transcription + summary.
-//   • The process then exits on its own; we refresh the recordings list.
-//
-// Nothing here re-implements audio capture — it reuses the exact pipeline the
-// CLI already uses (ffmpeg for the mic, the Core Audio tap helper for the call).
+// AppModel — the app's brain: the recordings list, recording control, and
+// transcription orchestration. Owns the AudioRecorder and AppSettings.
 
 import Foundation
 import SwiftUI
 import AppKit
 
-enum RecState: Equatable {
-    case idle
-    case recording
-    case processing
-}
-
+@MainActor
 final class AppModel: ObservableObject {
-    @Published var state: RecState = .idle
-    @Published var status: String = "Ready"
-    @Published var elapsed: TimeInterval = 0
     @Published var recordings: [Recording] = []
     @Published var selectedID: Recording.ID?
-    @Published var cliPath: String?
+    @Published private(set) var transcribingIDs: Set<String> = []
+    @Published var currentRecordingID: String?
+    @Published var alert: AppAlert?
+    @Published var showSettings = false
 
-    // Post-record Slack prompt (only when slackcli is installed).
-    @Published var showPostPrompt = false
-    @Published var postChannel = ""
-
-    // Onboarding / API key (stored in the CLI's config so both share it).
-    @Published var hasAPIKey = false
-    @Published var showOnboarding = false
-
-    // Live mic input meter (runs alongside the CLI; see AudioMeter).
-    let meter = AudioMeter()
-
-    private var process: Process?
-    private var stdinHandle: FileHandle?
-    private var timer: Timer?
-    private var startedAt: Date?
-    private var lastFinished: Recording?
-    private var starting = false  // guards the async permission pre-flight
+    let recorder = AudioRecorder()
+    let settings = AppSettings()
 
     init() {
-        cliPath = Self.resolveCLI()
-        if cliPath == nil {
-            status = "jakelisten CLI not found — run the installer first"
-        }
-        refreshConfigState()
-        showOnboarding = !hasAPIKey
         refresh()
+        selectedID = recordings.first?.id
     }
 
-    // MARK: - Config (~/.jakelisten/config.json — shared with the CLI)
+    // MARK: - Derived status
 
-    private var configURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".jakelisten/config.json")
+    func status(for rec: Recording) -> RecordingStatus {
+        if rec.id == currentRecordingID { return .recording }
+        if transcribingIDs.contains(rec.id) { return .transcribing }
+        return rec.baseStatus
     }
 
-    private func readConfig() -> [String: Any] {
-        guard let data = try? Data(contentsOf: configURL),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
-        return obj
+    var isRecording: Bool { recorder.state == .recording }
+    var selected: Recording? { recordings.first { $0.id == selectedID } }
+
+    // MARK: - Recording
+
+    func toggleRecording() {
+        if isRecording { stopRecording() } else { Task { await startRecording() } }
     }
 
-    func refreshConfigState() {
-        let key = (readConfig()["geminiApiKey"] as? String) ?? ""
-        hasAPIKey = !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    func startRecording() async {
+        guard !isRecording, currentRecordingID == nil else { return }
 
-    /// Persist the Gemini API key into the CLI's config (creating the dir/file).
-    func saveAPIKey(_ key: String) {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        var cfg = readConfig()
-        cfg["geminiApiKey"] = trimmed
-        let dir = configURL.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        if let data = try? JSONSerialization.data(withJSONObject: cfg, options: [.prettyPrinted]) {
-            try? data.write(to: configURL)
-        }
-        refreshConfigState()
-    }
-
-    var selected: Recording? {
-        recordings.first { $0.id == selectedID }
-    }
-
-    var elapsedText: String {
-        let s = Int(elapsed)
-        return String(format: "%02d:%02d", s / 60, s % 60)
-    }
-
-    // MARK: - CLI discovery
-
-    /// Find the `jakelisten` binary. GUI apps don't inherit the shell PATH, so
-    /// check the usual Homebrew locations first, then fall back to a login shell.
-    private static func resolveCLI() -> String? {
-        let candidates = ["/opt/homebrew/bin/jakelisten", "/usr/local/bin/jakelisten"]
-        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
-            return path
-        }
-        let probe = Process()
-        probe.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        probe.arguments = ["-lc", "command -v jakelisten"]
-        let pipe = Pipe()
-        probe.standardOutput = pipe
-        probe.standardError = FileHandle.nullDevice
-        try? probe.run()
-        probe.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        let out = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return out.isEmpty ? nil : out
-    }
-
-    // MARK: - System-audio permission (so we never silently record nothing)
-
-    enum AudioPermission { case authorized, denied, noHelper }
-    private enum PermissionIssue { case systemAudio, noHelper }
-
-    /// The system-audio capture helper sits next to the resolved CLI script
-    /// (the `jakelisten` command is a symlink into the install dir).
-    private var syscapPath: String? {
-        guard let cli = cliPath else { return nil }
-        let real = URL(fileURLWithPath: cli).resolvingSymlinksInPath()
-        let helper = real.deletingLastPathComponent().appendingPathComponent("jakelisten-syscap")
-        return FileManager.default.isExecutableFile(atPath: helper.path) ? helper.path : nil
-    }
-
-    /// Ask the helper whether system-audio recording is authorized. When the
-    /// status is undetermined this also triggers the one-time macOS prompt —
-    /// the helper runs in our GUI session, so the dialog can actually appear.
-    private func checkSystemAudioPermission() -> AudioPermission {
-        guard let helper = syscapPath else { return .noHelper }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: helper)
-        p.arguments = ["--check-permission"]
-        let out = Pipe()
-        p.standardOutput = out
-        p.standardError = FileHandle.nullDevice
-        do { try p.run() } catch { return .denied }
-        p.waitUntilExit()
-        let s = String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return s == "authorized" ? .authorized : .denied
-    }
-
-    private func presentPermissionAlert(_ issue: PermissionIssue) {
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        switch issue {
-        case .systemAudio:
-            alert.messageText = "JakeListen can't record the call audio yet"
-            alert.informativeText = """
-                macOS hasn't granted system-audio recording, so only your microphone would be captured — the other side of the call would be missing.
-
-                Enable JakeListen under System Settings ▸ Privacy & Security ▸ Screen & System Audio Recording, then hit record again.
-                """
-            alert.addButton(withTitle: "Open System Settings")
-            alert.addButton(withTitle: "Cancel")
-        case .noHelper:
-            alert.messageText = "System-audio helper not found"
-            alert.informativeText = "JakeListen can record your microphone but not the call audio until the capture helper is installed. Reinstall JakeListen to restore call recording."
-            alert.addButton(withTitle: "OK")
-        }
-        NSApp.activate(ignoringOtherApps: true)
-        let resp = alert.runModal()
-        if issue == .systemAudio, resp == .alertFirstButtonReturn,
-           let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
-    }
-
-    // MARK: - Recording control
-
-    func toggle() {
-        switch state {
-        case .idle: start()
-        case .recording: stop()
-        case .processing: break
-        }
-    }
-
-    func start() {
-        guard state == .idle, !starting, cliPath != nil else { return }
-        starting = true
-        // Pre-flight: never begin a recording that would silently miss the call
-        // audio. Verify system-audio permission first (this also surfaces the
-        // one-time macOS prompt in our GUI session), and only record once it's
-        // granted — otherwise guide the user instead of capturing nothing.
-        status = "Checking audio permission…"
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else { return }
-            let perm = self.checkSystemAudioPermission()
-            DispatchQueue.main.async {
-                self.starting = false
-                switch perm {
-                case .authorized:
-                    self.beginRecording()
-                case .denied:
-                    self.status = "Ready"
-                    self.presentPermissionAlert(.systemAudio)
-                case .noHelper:
-                    self.status = "Ready"
-                    self.presentPermissionAlert(.noHelper)
-                }
-            }
-        }
-    }
-
-    private func beginRecording() {
-        guard state == .idle, let cli = cliPath else { return }
-
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: cli)
-        // --no-slack: the GUI can't answer the CLI's interactive Slack prompt,
-        // so it would hang in "Processing…". We post separately via the sheet.
-        var args = ["record", "--no-slack"]
-        // Optional participant hint → better name guessing in the transcript.
-        let people = UserDefaults.standard
-            .string(forKey: PrefKey.participants)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !people.isEmpty { args += ["--speakers", people] }
-        proc.arguments = args
-
-        // Ensure node / ffmpeg / the syscap helper resolve from a GUI context.
-        var env = ProcessInfo.processInfo.environment
-        let extra = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-        env["PATH"] = extra + ":" + (env["PATH"] ?? "")
-        proc.environment = env
-
-        let inPipe = Pipe()
-        let outPipe = Pipe()
-        proc.standardInput = inPipe
-        proc.standardOutput = outPipe
-        proc.standardError = outPipe
-
-        outPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            let chunk = handle.availableData
-            guard !chunk.isEmpty, let text = String(data: chunk, encoding: .utf8) else { return }
-            self?.ingest(text)
-        }
-
-        proc.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.finishProcessing()
+        // Microphone permission.
+        if !AudioRecorder.micAuthorized() {
+            let granted = await AudioRecorder.requestMic()
+            if !granted {
+                alert = .micDenied
+                return
             }
         }
 
-        do {
-            try proc.run()
-        } catch {
-            status = "Failed to start: \(error.localizedDescription)"
+        // System-audio permission — never start a recording that would silently
+        // miss the meeting audio. Request whenever we're not already authorized
+        // (the OS shows its prompt the first time; a hard denial just falls through
+        // to the guidance alert).
+        var sysPerm = SystemAudioAuthorization.status()
+        if sysPerm != .authorized { sysPerm = await SystemAudioAuthorization.request() }
+        guard sysPerm == .authorized else {
+            alert = .systemAudioDenied
             return
         }
 
-        process = proc
-        stdinHandle = inPipe.fileHandleForWriting
-        startedAt = Date()
-        elapsed = 0
-        state = .recording
-        status = "Recording…"
-        meter.start()
-
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self, let started = self.startedAt else { return }
-            self.elapsed = Date().timeIntervalSince(started)
-        }
-    }
-
-    func stop() {
-        guard state == .recording else { return }
-        timer?.invalidate()
-        timer = nil
-        meter.stop()
-        state = .processing
-        status = "Transcribing & summarizing…"
-        // A newline is what the CLI reads as "Enter" to stop and process.
-        stdinHandle?.write(Data("\n".utf8))
-    }
-
-    private func finishProcessing() {
-        process = nil
-        stdinHandle = nil
-        startedAt = nil
-        meter.stop()  // safety: the process may have exited without a stop()
-        state = .idle
-        status = "Ready"
+        let rec = RecordingStore.create()
+        currentRecordingID = rec.id
         refresh()
-        // Auto-select the newest recording so the user sees the result.
-        selectedID = recordings.first?.id
-        lastFinished = recordings.first
-        // Offer to post to Slack only if it's installed and there's a summary.
-        if Self.slackAvailable(), let rec = lastFinished, rec.hasSummary {
-            postChannel = ""
-            showPostPrompt = true
-        }
-    }
+        selectedID = rec.id
 
-    /// Is the Slack CLI installed? Posting is routed through `jakelisten post`,
-    /// but we only prompt when the user actually has slackcli.
-    private static func slackAvailable() -> Bool {
-        ["/opt/homebrew/bin/slackcli", "/usr/local/bin/slackcli"]
-            .contains { FileManager.default.isExecutableFile(atPath: $0) }
-    }
-
-    /// Post the most recent recording's summary to a Slack channel via the CLI's
-    /// scriptable `post` command (which resolves channel names → ids).
-    func postSelectedToSlack(channel: String) {
-        let ch = channel.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !ch.isEmpty, let rec = lastFinished, let cli = cliPath else { return }
-        status = "Posting to \(ch)…"
-
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: cli)
-        proc.arguments = ["post", rec.summaryURL.path, ch]
-        var env = ProcessInfo.processInfo.environment
-        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + (env["PATH"] ?? "")
-        proc.environment = env
-
-        proc.terminationHandler = { [weak self] p in
-            DispatchQueue.main.async {
-                self?.status = p.terminationStatus == 0
-                    ? "Posted to \(ch)"
-                    : "Slack post failed — see Terminal/CLI"
-            }
-        }
         do {
-            try proc.run()
+            try recorder.start(meURL: rec.meURL, othersURL: rec.othersURL)
         } catch {
-            status = "Slack post failed: \(error.localizedDescription)"
+            currentRecordingID = nil
+            RecordingStore.delete(rec)
+            refresh()
+            alert = AppAlert(title: "Couldn't start recording", message: "\(error)")
         }
     }
 
-    /// Strip ANSI color codes and keep the last meaningful line as the status.
-    private func ingest(_ text: String) {
-        let cleaned = text.replacingOccurrences(
-            of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression
-        )
-        let lines = cleaned
-            .split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        guard let last = lines.last else { return }
-        DispatchQueue.main.async {
-            if self.state != .idle { self.status = last }
+    func stopRecording() {
+        guard isRecording, let id = currentRecordingID else { return }
+        let duration = recorder.stop()
+        currentRecordingID = nil
+
+        if var rec = recordings.first(where: { $0.id == id }) {
+            rec.duration = duration
+            RecordingStore.save(rec)
+        }
+        refresh()
+        selectedID = id
+
+        // Auto-transcribe if we have a key; otherwise the recording just waits.
+        if settings.hasAPIKey {
+            if let rec = recordings.first(where: { $0.id == id }) { transcribe(rec) }
+        } else {
+            showSettings = true
         }
     }
 
-    // MARK: - Recordings
+    // MARK: - Transcription
+
+    func transcribe(_ rec: Recording) {
+        guard !transcribingIDs.contains(rec.id) else { return }
+        guard settings.hasAPIKey else { showSettings = true; return }
+
+        // Clear any prior error so the badge leaves the "Failed" state.
+        if var r = recordings.first(where: { $0.id == rec.id }), r.lastError != nil {
+            r.lastError = nil
+            RecordingStore.save(r)
+        }
+        transcribingIDs.insert(rec.id)
+        refresh()
+
+        let apiKey = settings.apiKey
+        let model = settings.effectiveModel
+        let context = settings.context
+
+        Task {
+            do {
+                try await Transcriber.run(rec, apiKey: apiKey, model: model, context: context)
+            } catch {
+                if var r = recordings.first(where: { $0.id == rec.id }) {
+                    r.lastError = (error as? LocalizedError)?.errorDescription ?? "\(error)"
+                    RecordingStore.save(r)
+                }
+            }
+            transcribingIDs.remove(rec.id)
+            refresh()
+        }
+    }
+
+    // MARK: - List management
 
     func refresh() {
-        recordings = Recording.scan()
-        if selectedID == nil { selectedID = recordings.first?.id }
-    }
-
-    func revealInFinder() {
-        NSWorkspace.shared.activateFileViewerSelecting([Recording.directory])
-    }
-
-    func reveal(_ recording: Recording) {
-        let urls = [recording.transcriptURL, recording.meURL].filter {
-            FileManager.default.fileExists(atPath: $0.path)
+        recordings = RecordingStore.scan()
+        if let sel = selectedID, !recordings.contains(where: { $0.id == sel }) {
+            selectedID = recordings.first?.id
         }
-        NSWorkspace.shared.activateFileViewerSelecting(urls)
     }
 
-    /// Move every file belonging to a recording to the Trash (recoverable).
-    func delete(_ recording: Recording) {
-        let fm = FileManager.default
-        let urls = [
-            recording.meURL,
-            recording.othersURL,
-            recording.transcriptURL,
-            recording.summaryURL,
-            recording.dir.appendingPathComponent(recording.id + ".others.caf"),
-        ]
-        for url in urls where fm.fileExists(atPath: url.path) {
-            try? fm.trashItem(at: url, resultingItemURL: nil)
-        }
-        if selectedID == recording.id { selectedID = nil }
+    func revealInFinder(_ rec: Recording) {
+        NSWorkspace.shared.activateFileViewerSelecting([rec.dir])
+    }
+
+    func delete(_ rec: Recording) {
+        guard rec.id != currentRecordingID else { return }   // don't delete while recording
+        RecordingStore.delete(rec)
+        if selectedID == rec.id { selectedID = nil }
         refresh()
     }
+}
+
+// A simple alert payload; `openSystemSettings` deep-links to the right pane.
+struct AppAlert: Identifiable {
+    let id = UUID()
+    var title: String
+    var message: String
+    var openSystemSettings: String? = nil
+
+    static let micDenied = AppAlert(
+        title: "Microphone access needed",
+        message: "JakeListen records your microphone to transcribe the meeting. Enable it under System Settings ▸ Privacy & Security ▸ Microphone, then try again.",
+        openSystemSettings: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+
+    static let systemAudioDenied = AppAlert(
+        title: "System audio access needed",
+        message: "Without it, only your microphone is captured — the other participants would be missing. Enable JakeListen under System Settings ▸ Privacy & Security ▸ Screen & System Audio Recording, then hit record again.",
+        openSystemSettings: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
 }

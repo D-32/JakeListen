@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JakeListen — record, transcribe & summarise your calls</title>
-<meta name="description" content="A lightweight macOS tool that records a call, transcribes it, and writes a short summary. Captures both sides of the call with no virtual audio driver. Proudly 100% AI-generated.">
+<title>JakeListen — record, transcribe & summarise your meetings</title>
+<meta name="description" content="A tiny, self-contained macOS app that records a meeting — your mic and the other participants — and transcribes and summarises it with Gemini. No virtual audio driver, no command line. Proudly 100% AI-generated.">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="1024x1024" href="icon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta property="og:title" content="JakeListen — record, transcribe & summarise your calls">
-<meta property="og:description" content="A lightweight macOS tool that records both sides of a call, transcribes it, and writes a tidy summary. Proudly 100% AI-generated.">
+<meta property="og:title" content="JakeListen — record, transcribe & summarise your meetings">
+<meta property="og:description" content="A tiny, self-contained macOS app that records both sides of a meeting, transcribes it, and writes a tidy summary. Proudly 100% AI-generated.">
 <meta property="og:image" content="icon.png">
 <style>
   :root{
@@ -112,9 +112,8 @@
   .key li b{color:var(--ink)}
   .key li .chk{color:var(--green);font-weight:800;margin-top:1px}
 
-  /* ---------- macOS mockups ---------- */
-  .showcase{display:grid;grid-template-columns:1.55fr .82fr;gap:26px;margin-top:40px;align-items:start}
-  @media(max-width:860px){.showcase{grid-template-columns:1fr}}
+  /* ---------- macOS mockup ---------- */
+  .showcase{margin-top:40px}
   .mac{background:#fff;border:1px solid var(--line-strong);border-radius:12px;overflow:hidden;
     box-shadow:0 24px 55px -28px rgba(60,45,20,.55)}
   .titlebar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:#ececec;border-bottom:1px solid #dcdcdc}
@@ -124,40 +123,29 @@
   .titlebar .t{color:#5a5650;font-size:13px;margin-left:6px;font-weight:600}
   .titlebar .tb-actions{margin-left:auto;display:flex;gap:13px;color:#6e6a63;font-size:13px}
   .titlebar .tb-actions .rec{color:var(--red);font-weight:700}
-  .winbody{display:grid;grid-template-columns:226px 1fr;min-height:344px;color:#1d1b18}
+  .winbody{display:grid;grid-template-columns:238px 1fr;min-height:360px;color:#1d1b18}
   .sidebar{border-right:1px solid #e7e3da;background:#f6f5f1;padding:10px}
   .side-head{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#8a857b;padding:6px 8px;font-weight:700}
-  .rec-row{padding:9px 10px;border-radius:8px}
-  .rec-row.sel{background:#e9eefc;outline:1px solid #c9d8fb}
-  .rec-row .rt{font-size:13.5px;font-weight:600}
-  .rec-row .rs{font-size:12px;color:#8a857b}
-  .detail{padding:20px 22px}
-  .detail h4.dt{margin:0 0 14px;font-size:18px;font-family:var(--serif)}
-  .sec-label{display:flex;align-items:center;gap:7px;color:#8a857b;font-weight:700;font-size:12px;
-    text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px}
-  .summary{font-size:14px;color:#33302b}
-  .summary b{color:var(--gold-deep)}
-  .summary ul{margin:6px 0 0;padding-left:18px;color:#625d54}
-  .transcript{font-family:var(--mono);font-size:12.5px;background:#fbfaf6;border:1px solid #e7e3da;
-    border-radius:9px;padding:13px;color:#3a372f;white-space:pre-wrap;line-height:1.62}
-  .transcript .ts{color:#a39a86}
-  .transcript .me{color:var(--green);font-weight:700}
-  .transcript .sp{color:var(--blue);font-weight:700}
+  .rec-row{padding:9px 10px;border-radius:8px;display:flex;gap:9px;align-items:center}
+  .rec-row.sel{background:#fbe9e7;outline:1px solid #f3c6c0}
+  .rec-row .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .rec-row .rt{font-size:13px;font-weight:600}
+  .rec-row .rs{font-size:11.5px;color:#8a857b}
+  .dot.g{background:var(--green)}.dot.o{background:#e08b2b}.dot.r{background:var(--red)}.dot.k{background:#b7b1a6}
+  .detail{padding:22px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+  .timer{font-family:var(--mono);font-size:40px;font-weight:600;color:#1d1b18;letter-spacing:1px}
+  .reclabel{color:var(--red);font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+  .viz{width:100%;max-width:360px;background:#faf9f5;border:1px solid #e7e3da;border-radius:10px;padding:12px 14px}
+  .viz .vl{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#6e6a63;margin-bottom:8px}
+  .viz .vl .vdot{width:7px;height:7px;border-radius:50%}
+  .bars{display:flex;align-items:center;gap:3px;height:34px}
+  .bars span{flex:1;border-radius:3px}
+  .bars.green span{background:var(--green)}
+  .bars.blue span{background:var(--blue)}
+  .stopbtn{background:var(--red);color:#fff;font-weight:700;border-radius:9px;padding:9px 18px;font-size:14px}
+  .caption{color:var(--ink-soft);font-size:13.5px;margin-top:14px;text-align:center}
 
-  .menubar{border:1px solid var(--line-strong);border-radius:12px;overflow:hidden;background:#fff}
-  .mb-strip{display:flex;align-items:center;gap:14px;justify-content:flex-end;padding:7px 12px;
-    background:#ececec;border-bottom:1px solid #dcdcdc;color:#6e6a63;font-size:13px}
-  .mb-strip .dogicon{color:var(--gold-deep)}
-  .popover{padding:14px}
-  .popover .ph{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:11px;color:#1d1b18}
-  .popover .big{display:flex;align-items:center;gap:10px;justify-content:space-between;
-    background:var(--red);color:#fff;font-weight:700;border-radius:9px;padding:11px 14px;font-size:14px}
-  .popover .big .time{font-family:var(--mono);opacity:.9}
-  .popover .st{color:#8a857b;font-size:12.5px;margin:10px 2px}
-  .popover .row{color:#33302b;font-size:13.5px;padding:8px 2px;border-top:1px solid #e7e3da}
-  .caption{color:var(--ink-soft);font-size:13.5px;margin-top:12px;text-align:center}
-
-  /* ---------- steps / install ---------- */
+  /* ---------- steps / get started ---------- */
   .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(214px,1fr));gap:20px;margin-top:40px}
   .step{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:24px;position:relative}
   .step .n{position:absolute;top:-15px;left:24px;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
@@ -165,10 +153,10 @@
   .step h3{margin:11px 0 6px;font-size:16.5px;font-family:var(--serif)}
   .step p{margin:0;color:var(--ink-soft);font-size:14.5px}
   code{font-family:var(--mono);font-size:13px;background:#efe7d5;padding:1px 5px;border-radius:4px;color:#5b4a26}
-  pre{background:#211d17;border:1px solid #3a3326;border-radius:12px;padding:20px 22px;overflow:auto;
-    font-family:var(--mono);font-size:13.5px;color:#e8dcc4;margin:30px 0 0;line-height:1.75}
-  pre .c{color:#9b9079}
-  pre .k{color:#f3c777}
+
+  .note{margin-top:30px;background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:10px;padding:18px 20px;color:var(--ink-soft);font-size:15px}
+  .note b{color:var(--ink)}
 
   /* ---------- footer ---------- */
   footer{padding:46px 0;border-top:1px solid var(--line);color:var(--ink-soft);font-size:14px}
@@ -185,9 +173,9 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#app">The app</a>
-      <a href="#install">Install</a>
+      <a href="#get">Get it</a>
       <a href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">GitHub ↗</a>
-      <a class="btn btn-primary" href="#install">Get it</a>
+      <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest/download/JakeListen.dmg">Download</a>
     </div>
   </div>
 </nav>
@@ -195,14 +183,14 @@
 <header class="hero">
   <div class="wrap">
     <div>
-      <span class="tag">// macOS · proudly AI-built</span>
-      <h1>Your calls, written&nbsp;down and <span class="mark">summarised</span>.</h1>
-      <p class="sub">JakeListen quietly records both sides of a call, transcribes it with speaker names, and hands you a tidy summary the moment you hang up. No virtual audio driver, no faff.</p>
+      <span class="tag">// macOS · one app · proudly AI-built</span>
+      <h1>Your meetings, written&nbsp;down and <span class="mark">summarised</span>.</h1>
+      <p class="sub">JakeListen records both sides of a meeting — your mic and the other participants — then hands you a speaker-labelled transcript and a tidy summary. One native app. No virtual audio driver, no command line, nothing to install.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="#install">Get JakeListen</a>
+        <a class="btn btn-primary" href="https://github.com/D-32/JakeListen/releases/latest/download/JakeListen.dmg">Download JakeListen</a>
         <a class="btn btn-ghost" href="https://github.com/D-32/JakeListen" target="_blank" rel="noopener">View source on GitHub</a>
       </div>
-      <p class="hero-note">macOS 14.2+ · Bring your own Gemini key · MIT licensed</p>
+      <p class="hero-note">macOS 26+ · Bring your own Gemini key · MIT licensed</p>
     </div>
     <div class="hero-art">
       <img src="jakelisten.jpg" alt="Jake, a golden retriever in headphones, taking notes at a desk">
@@ -216,7 +204,7 @@
     <div class="robot">🤖</div>
     <div>
       <h2>Yes, this is 100% AI slop. We're not hiding it.</h2>
-      <p>Every single line of JakeListen was written by AI: the CLI, the Swift audio helper, the Mac app, the installer, and <b>this exact website you're reading</b>. A human pointed and nudged; the AI typed all of it. We're putting that right up front because you deserve to know what you're running. It works, it's open source, and you can read every line yourself. <b>No human-made polish, no false claims, just honest robot output.</b></p>
+      <p>Every single line of JakeListen was written by AI — the Swift app, the audio capture, and <b>this exact website you're reading</b>. A human pointed and nudged; the AI typed all of it. We're putting that right up front because you deserve to know what you're running. It works, it's open source, and you can read every line yourself. <b>No human-made polish, no false claims, just honest robot output.</b></p>
     </div>
   </div>
 </div>
@@ -224,38 +212,38 @@
 <section id="features">
   <div class="wrap">
     <div class="eyebrow">Why JakeListen</div>
-    <h2 class="title">Everything a call needs, nothing it doesn't.</h2>
-    <p class="lead">Jake sits in, listens to both sides, and gives you back a clean transcript and summary the second the call ends.</p>
+    <h2 class="title">Everything a meeting needs, nothing it doesn't.</h2>
+    <p class="lead">Jake sits in, listens to both sides, and gives you back a clean transcript and summary the moment you stop.</p>
     <div class="features">
       <div class="card">
         <div class="ic">🎙️</div>
         <h3>Both sides, no BlackHole</h3>
-        <p>Your mic via ffmpeg, everyone else via macOS Core Audio process taps. No virtual audio driver or Multi-Output Device to wrestle with.</p>
+        <p>Your mic and everyone else — captured straight off your speakers with native macOS Core Audio process taps. No virtual audio driver or Multi-Output Device to wrestle with.</p>
+      </div>
+      <div class="card">
+        <div class="ic">📊</div>
+        <h3>See both meters move</h3>
+        <p>Two live visualisers while you record — one for your mic, one for the meeting — so you know both sources are being picked up before you rely on it.</p>
       </div>
       <div class="card">
         <div class="ic">🗣️</div>
         <h3>Speaker-labelled</h3>
-        <p>Each side is transcribed on its own and merged by timestamp, so "Me" vs. everyone else stays reliably separated.</p>
+        <p>Your mic is labelled <b>Me</b>; the other participants are diarized by voice, with real names when they're spoken. One merged, chronological transcript.</p>
       </div>
       <div class="card">
         <div class="ic">📝</div>
         <h3>Instant summaries</h3>
-        <p>A short recap with participants, key points, decisions, and action items, ready to paste into Slack.</p>
+        <p>A short recap — overview, participants, key points, decisions, and action items — written the moment the transcript lands.</p>
       </div>
       <div class="card">
-        <div class="ic">⏱️</div>
-        <h3>Built for long calls</h3>
-        <p>Recordings are chunked, transcribed in parallel, de-duplicated across overlaps, and silence-trimmed so it never loops.</p>
-      </div>
-      <div class="card">
-        <div class="ic">💬</div>
-        <h3>Posts to Slack</h3>
-        <p>Optionally drop the summary straight into the channel of your choice as soon as the call wraps.</p>
+        <div class="ic">🗂️</div>
+        <h3>Nothing gets lost</h3>
+        <p>Every recording shows in the sidebar the instant you stop — transcribed or not. If a transcription fails, the audio stays put with a one-click <b>Retry</b>.</p>
       </div>
       <div class="card">
         <div class="ic">🔒</div>
         <h3>Yours by default</h3>
-        <p>Audio, transcripts, and summaries stay on your disk. Nothing personal is hard-coded; your name and jargon live in local config.</p>
+        <p>Audio goes straight from your Mac to Google under your own key — no middleman server. Recordings and transcripts stay on your disk; your key stays in your Keychain.</p>
       </div>
     </div>
   </div>
@@ -266,11 +254,11 @@
     <div class="eyebrow">Bring your own key</div>
     <h2 class="title">You hold the key, literally.</h2>
     <div class="key">
-      <p class="lead" style="max-width:none">JakeListen runs on <b>your own Google Gemini API key</b> instead of routing your calls through someone else's server. Grabbing one is free and takes about a minute, and it means you stay in full control.</p>
+      <p class="lead" style="max-width:none">JakeListen runs on <b>your own Google Gemini API key</b> instead of routing your meetings through someone else's server. Grabbing one is free and takes about a minute, and it means you stay in full control.</p>
       <div class="keycard">
         <ul>
           <li><span class="chk">✓</span><span><b>Your data, your account.</b> Audio goes straight from your Mac to Google under your key. There's no middleman service in between.</span></li>
-          <li><span class="chk">✓</span><span><b>Free to start.</b> Gemini's free tier comfortably covers everyday calls.</span></li>
+          <li><span class="chk">✓</span><span><b>Free to start.</b> Gemini's free tier comfortably covers everyday meetings.</span></li>
           <li><span class="chk">✓</span><span><b>You set the limits.</b> Rotate, cap, or revoke the key whenever you like.</span></li>
           <li><span class="chk">✓</span><span><b>One-minute setup.</b> Paste it once when you first run JakeListen and you're done.</span></li>
         </ul>
@@ -282,88 +270,76 @@
 <section id="app">
   <div class="wrap">
     <div class="eyebrow">The app</div>
-    <h2 class="title">A native menu-bar &amp; window front-end.</h2>
-    <p class="lead">Start and stop from the menu bar, then browse every past call with its summary and transcript in one window. The GUI drives the same CLI under the hood.</p>
+    <h2 class="title">One window. Record, then read.</h2>
+    <p class="lead">Hit record and watch both meters move; stop, and the recording drops into the sidebar to transcribe. Every past meeting, with its summary and transcript, is a click away.</p>
 
     <div class="showcase">
       <div class="mac">
         <div class="titlebar">
           <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
           <span class="t">JakeListen</span>
-          <div class="tb-actions"><span class="rec">⏺ Record</span><span>↻</span></div>
+          <div class="tb-actions"><span class="rec">⏺ Stop</span><span>⚙︎</span></div>
         </div>
         <div class="winbody">
           <div class="sidebar">
             <div class="side-head">Recordings</div>
             <div class="rec-row sel">
-              <div class="rt">Jun 15, 2026 at 3:25 PM</div>
-              <div class="rs">Summarised</div>
+              <span class="dot r"></span>
+              <div><div class="rt">Jul 26, 2026 at 3:25 PM</div><div class="rs">Recording…</div></div>
             </div>
             <div class="rec-row">
-              <div class="rt">Jun 14, 2026 at 11:08 AM</div>
-              <div class="rs">Summarised</div>
+              <span class="dot g"></span>
+              <div><div class="rt">Jul 24, 2026 at 11:08 AM</div><div class="rs">Done</div></div>
             </div>
             <div class="rec-row">
-              <div class="rt">Jun 12, 2026 at 9:02 AM</div>
-              <div class="rs">Transcribed</div>
+              <span class="dot o"></span>
+              <div><div class="rt">Jul 22, 2026 at 9:02 AM</div><div class="rs">Transcribing…</div></div>
+            </div>
+            <div class="rec-row">
+              <span class="dot k"></span>
+              <div><div class="rt">Jul 21, 2026 at 4:40 PM</div><div class="rs">Not transcribed</div></div>
             </div>
           </div>
           <div class="detail">
-            <h4 class="dt">Jun 15, 2026 at 3:25 PM</h4>
-            <div class="sec-label">▸ Summary</div>
-            <div class="summary">
-              <b>Summary</b> — Weekly sync to lock the v0.6 release and split up the launch tasks.
-              <ul>
-                <li><b>Participants:</b> Me, Sam, Priya</li>
-                <li><b>Decisions:</b> Ship v0.6 Friday; docs site goes live with it.</li>
-                <li><b>Action items:</b> Priya finalizes the README, Sam cuts the release.</li>
-              </ul>
+            <div class="timer">04:12</div>
+            <div class="reclabel">⏺ Recording</div>
+            <div class="viz">
+              <div class="vl"><span class="vdot" style="background:var(--green)"></span> You (microphone)</div>
+              <div class="bars green">
+                <span style="height:30%"></span><span style="height:55%"></span><span style="height:38%"></span><span style="height:72%"></span><span style="height:48%"></span><span style="height:88%"></span><span style="height:40%"></span><span style="height:63%"></span><span style="height:34%"></span><span style="height:70%"></span><span style="height:45%"></span><span style="height:58%"></span><span style="height:30%"></span><span style="height:52%"></span>
+              </div>
             </div>
-            <div class="sec-label">▸ Transcript</div>
-            <div class="transcript"><span class="ts">[00:02]</span> <span class="me">Me:</span> Alright, are we good to ship v0.6 this week?
-<span class="ts">[00:07]</span> <span class="sp">Sam:</span> Yeah, build's green and the install script works on a clean Mac.
-<span class="ts">[00:14]</span> <span class="sp">Priya:</span> I'll have the README polished by Thursday.
-<span class="ts">[00:19]</span> <span class="me">Me:</span> Perfect, let's tag it Friday morning then.</div>
+            <div class="viz">
+              <div class="vl"><span class="vdot" style="background:var(--blue)"></span> Meeting (system audio)</div>
+              <div class="bars blue">
+                <span style="height:44%"></span><span style="height:26%"></span><span style="height:60%"></span><span style="height:35%"></span><span style="height:78%"></span><span style="height:42%"></span><span style="height:55%"></span><span style="height:32%"></span><span style="height:68%"></span><span style="height:38%"></span><span style="height:50%"></span><span style="height:28%"></span><span style="height:62%"></span><span style="height:40%"></span>
+              </div>
+            </div>
+            <div class="stopbtn">⏹ Stop &amp; Transcribe</div>
           </div>
         </div>
       </div>
-
-      <div>
-        <div class="menubar">
-          <div class="mb-strip"><span>🔋</span><span>📶</span><span class="dogicon">🐕</span><span>3:25</span></div>
-          <div class="popover">
-            <div class="ph"><span>🐕</span> JakeListen</div>
-            <div class="big"><span>⏹ Stop &amp; Process</span><span class="time">04:12</span></div>
-            <div class="st">Recording…</div>
-            <div class="row">Open Window</div>
-            <div class="row">Open Recordings Folder</div>
-            <div class="row">Quit JakeListen</div>
-          </div>
-        </div>
-        <p class="caption">The menu-bar popover: one click to start or stop.</p>
-      </div>
+      <p class="caption">Both meters move while you record — your voice on top, the meeting below.</p>
     </div>
   </div>
 </section>
 
-<section id="install">
+<section id="get">
   <div class="wrap">
     <div class="eyebrow">Get started</div>
-    <h2 class="title">Just point Claude Code at it.</h2>
-    <p class="lead">JakeListen was written entirely by AI, so why install it like it's 2015? No packages, no installers. Open <a href="https://www.anthropic.com/claude-code" target="_blank" rel="noopener">Claude Code</a> (or your coding agent of choice), paste the prompt below, and it'll clone the repo, sort out the dependencies, build the audio helper, and launch the app for you.</p>
-
-<pre><span class="c"># paste this into Claude Code:</span>
-Install JakeListen from github.com/D-32/JakeListen
-and launch it on my Mac.</pre>
+    <h2 class="title">Download, open, record.</h2>
+    <p class="lead">No packages, no installers, no command line. Grab the app, drop in your free Gemini key, and hit record.</p>
 
     <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Open Claude Code</h3><p>Anthropic's agentic CLI, or any coding agent that can run commands on your Mac.</p></div>
-      <div class="step"><div class="n">2</div><h3>Paste the prompt</h3><p>It works out Homebrew, ffmpeg, the Swift helper, and the macOS permissions on its own.</p></div>
-      <div class="step"><div class="n">3</div><h3>Pop in your Gemini key</h3><p>On first launch JakeListen asks for your free Gemini key. Paste it once and you're set.</p></div>
-      <div class="step"><div class="n">4</div><h3>Record</h3><p>Hit record from the menu bar or window. Your transcript and summary appear when you stop.</p></div>
+      <div class="step"><div class="n">1</div><h3>Download</h3><p>Grab <a href="https://github.com/D-32/JakeListen/releases/latest/download/JakeListen.dmg">JakeListen.dmg</a>, open it, and drag JakeListen to your Applications folder.</p></div>
+      <div class="step"><div class="n">2</div><h3>Open it</h3><p>Launch JakeListen. The first recording asks macOS for Microphone and System Audio access — click Allow once.</p></div>
+      <div class="step"><div class="n">3</div><h3>Paste your Gemini key</h3><p>On first launch JakeListen asks for your free <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Gemini key</a>. Paste it once and you're set.</p></div>
+      <div class="step"><div class="n">4</div><h3>Record</h3><p>Hit record, watch both meters move, and stop. Your transcript and summary appear in the window.</p></div>
     </div>
 
-    <p style="margin-top:26px;color:var(--ink-soft);font-size:15px">Rather do it by hand? The full manual steps live in the <a href="https://github.com/D-32/JakeListen#install" target="_blank" rel="noopener">README</a>.</p>
+    <div class="note">
+      <b>Requires macOS 26 (Tahoe) or newer.</b> Prefer to build it yourself? Clone the repo and run <code>./mac-app/build.sh --run</code> — you only need the Xcode Command Line Tools. Sharing it with a team? See <a href="https://github.com/D-32/JakeListen/blob/main/mac-app/DISTRIBUTING.md" target="_blank" rel="noopener">DISTRIBUTING.md</a>.
+    </div>
   </div>
 </section>
 

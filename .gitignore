@@ -1,18 +1,10 @@
-# Compiled system-audio helper — built locally by syscap/build.sh (and install.sh)
-jakelisten-syscap
+# Build output
+mac-app/build/
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-error.log
-
-# Recordings, transcripts, and local config never live in the repo, but ignore
-# them anyway in case anyone runs the tool from inside the checkout.
-recordings/
+# Recordings, transcripts, and local config never live in the repo.
+*.m4a
 *.wav
 *.caf
-*.transcript.txt
-*.summary.txt
 config.json
 
 # macOS

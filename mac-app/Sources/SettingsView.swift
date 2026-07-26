@@ -1,47 +1,75 @@
-// SettingsView — the standard ⌘, preferences pane. Currently just the
-// menu-bar visibility toggle (so a hidden item can always be brought back).
+// SettingsView — Gemini API key (required), the model, and an optional domain
+// primer. Doubles as first-run onboarding when no key is set yet.
 
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage(PrefKey.showMenuBarItem) private var showMenuBarItem = true
-    @AppStorage(PrefKey.participants) private var participants = ""
-    @EnvironmentObject var model: AppModel
+    @ObservedObject var settings: AppSettings
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Form {
-            Toggle("Show menu-bar icon", isOn: $showMenuBarItem)
-            Text("Turn this off to hide the 🐕 from the menu bar. You can still record from this window.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 4) {
-                TextField("Usual participants", text: $participants, prompt: Text("e.g. Alice, Bob, Carol"))
-                    .textFieldStyle(.roundedBorder)
-                Text("Comma-separated names of people often on your calls. JakeListen uses these to label speakers by name instead of “Speaker 1/2.”")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 30)).foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(settings.hasAPIKey ? "Settings" : "Welcome to JakeListen")
+                        .font(.title2.weight(.semibold))
+                    Text(settings.hasAPIKey
+                         ? "Your key stays in your Mac's Keychain."
+                         : "Paste your free Gemini API key to get started.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                Spacer()
             }
+            .padding(20)
 
             Divider()
 
-            LabeledContent("API key") {
-                HStack {
-                    Text(model.hasAPIKey ? "configured" : "not set")
-                        .foregroundStyle(model.hasAPIKey ? .green : .red)
-                    Button("Set up / change…") { model.showOnboarding = true }
+            Form {
+                Section {
+                    SecureField("AIza…", text: $settings.apiKey)
+                        .textFieldStyle(.roundedBorder)
+                    Link("Get a free key at Google AI Studio ↗",
+                         destination: URL(string: "https://aistudio.google.com/app/apikey")!)
+                        .font(.callout)
+                } header: {
+                    Text("Gemini API key")
+                } footer: {
+                    Text("Audio goes straight from your Mac to Google under your key — there's no JakeListen server in between.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Section("Model") {
+                    TextField("Model", text: $settings.model, prompt: Text(AppSettings.defaultModel))
+                        .textFieldStyle(.roundedBorder)
+                    Text("Any audio-capable Gemini model. Default: \(AppSettings.defaultModel).")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Section {
+                    TextEditor(text: $settings.context)
+                        .frame(height: 70)
+                        .font(.body)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.25)))
+                } header: {
+                    Text("Domain context (optional)")
+                } footer: {
+                    Text("Names, product terms, or jargon Gemini should spell correctly.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .formStyle(.grouped)
 
-            LabeledContent("CLI") {
-                Text(model.cliPath ?? "not found")
-                    .foregroundStyle(model.cliPath == nil ? .red : .secondary)
-                    .textSelection(.enabled)
+            Divider()
+            HStack {
+                Spacer()
+                Button(settings.hasAPIKey ? "Done" : "Get Started") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!settings.hasAPIKey)
             }
+            .padding(16)
         }
-        .padding(20)
-        .frame(width: 420)
+        .frame(width: 460, height: 560)
     }
 }

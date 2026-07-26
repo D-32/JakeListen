@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Build JakeListen.app — a SwiftUI menu-bar + window front-end for the
-# jakelisten CLI. Requires only the Xcode Command Line Tools (no full Xcode).
+# Build JakeListen.app — a self-contained SwiftUI app that records a meeting
+# (mic + system audio) and transcribes it with Gemini. No third-party runtime:
+# building needs only the Xcode Command Line Tools (swiftc); running needs nothing.
 #
 # Usage:
 #   ./build.sh          build into ./build/JakeListen.app
@@ -10,7 +11,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP="$DIR/build/JakeListen.app"
 ARCH="$(uname -m)"
-MIN_OS="14.0"
+MIN_OS="26.0"
 
 if ! command -v swiftc >/dev/null 2>&1; then
     echo "✗ swiftc not found. Install the Xcode Command Line Tools:  xcode-select --install" >&2
@@ -26,12 +27,13 @@ cp "$DIR/Info.plist" "$APP/Contents/Info.plist"
 swiftc -O \
     -target "${ARCH}-apple-macos${MIN_OS}" \
     -framework SwiftUI -framework AppKit -framework AVFoundation \
+    -framework CoreAudio -framework AudioToolbox -framework Security \
     $(find "$DIR/Sources" -name '*.swift') \
     -o "$APP/Contents/MacOS/JakeListen"
 
 # Sign with a stable self-signed identity so TCC microphone/system-audio grants
 # survive rebuilds (falls back to ad-hoc if the identity can't be created).
-"$DIR/../scripts/macos-sign.sh" "$APP"
+"$DIR/sign.sh" "$APP"
 
 echo "✓ Built $APP"
 
