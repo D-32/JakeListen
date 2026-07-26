@@ -36,7 +36,7 @@ Then attach `mac-app/build/JakeListen.dmg` to a GitHub Release (the website's
 download button points at `releases/latest/download/JakeListen.dmg`):
 
 ```bash
-gh release upload v3.0.0 mac-app/build/JakeListen.dmg --clobber
+gh release upload v3.0.1 mac-app/build/JakeListen.dmg --clobber
 ```
 
 Full one-time setup (cert, app-specific password, `notarytool store-credentials`)

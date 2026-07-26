@@ -5,7 +5,7 @@ participants** — and transcribes and summarizes it with Google Gemini. No Blac
 no virtual audio driver, no ffmpeg, no command line. Just an app. Named after Jake the
 dog. 🦴
 
-> **v3.0.0** — a clean-slate native rewrite. The old CLI + helper-binary + installer
+> **v3.0.1** — a clean-slate native rewrite. The old CLI + helper-binary + installer
 > are gone; everything now lives in one Swift app.
 
 ![JakeListen](site/jakelisten.jpg)

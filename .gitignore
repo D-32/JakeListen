@@ -1,6 +1,9 @@
 # Build output
 mac-app/build/
 
+# Cloudflare wrangler local state (contains account id/name — never commit)
+.wrangler/
+
 # Recordings, transcripts, and local config never live in the repo.
 *.m4a
 *.wav

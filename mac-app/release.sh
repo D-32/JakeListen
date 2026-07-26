@@ -40,9 +40,14 @@ step "Building"
 "$DIR/build.sh"
 
 # ---------- 2) re-sign with Developer ID + hardened runtime + secure timestamp ----------
-step "Signing with Developer ID (hardened runtime)"
-codesign --force --deep --options runtime --timestamp --sign "$SIGN_ID" "$APP"
+# The entitlements are REQUIRED under the hardened runtime for microphone/audio
+# capture — without them a notarized build is denied audio and never prompts.
+step "Signing with Developer ID (hardened runtime + audio entitlement)"
+codesign --force --deep --options runtime --timestamp \
+    --entitlements "$DIR/JakeListen.entitlements" --sign "$SIGN_ID" "$APP"
 codesign --verify --strict --verbose=2 "$APP" || die "codesign verification failed"
+codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -q 'audio-input' \
+    || die "audio-input entitlement missing after signing"
 
 # ---------- 3) package a .dmg (with an Applications shortcut for drag-install) ----------
 step "Building disk image"
