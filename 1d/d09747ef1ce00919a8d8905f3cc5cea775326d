@@ -1,0 +1,19 @@
+CLAUDE.md
+  s_ebaf331ce9c878::t_9d0384c5220174 1-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1dd09747ef1ce00919a8d8905f3cc5cea775326d",
+  "prompts": {},
+  "sessions": {
+    "s_ebaf331ce9c878": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "057cc88a-d715-4b60-a7f8-ac016efb2489",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
