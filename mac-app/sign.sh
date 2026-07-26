@@ -26,6 +26,21 @@ case "$TARGET" in
 	*.app) DEEP="--deep" ;;
 esac
 
+# Prefer a real Developer ID Application identity when one exists in the keychain.
+# Signing local build.sh output with the SAME identity that release.sh uses means
+# macOS TCC (microphone / system-audio) grants persist across every build — you
+# grant once and never again, whether you ran build.sh or release.sh. Falls back to
+# the stable self-signed identity below when there's no Developer ID cert.
+DEVID="$(security find-identity -v -p codesigning 2>/dev/null \
+	| grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
+if [ -n "$DEVID" ]; then
+	if codesign --force $DEEP --sign "$DEVID" "$TARGET" 2>/dev/null; then
+		echo "✓ Signed with Developer ID \"$DEVID\" — recording permissions persist across builds." >&2
+		exit 0
+	fi
+	echo "! Developer ID signing failed — falling back to the self-signed identity." >&2
+fi
+
 identity_ready() {
 	security find-certificate -c "$IDENTITY" "$SIGN_KEYCHAIN" >/dev/null 2>&1
 }
