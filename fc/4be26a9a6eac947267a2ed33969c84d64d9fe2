@@ -1,0 +1,19 @@
+wrangler.toml
+  s_ebaf331ce9c878::t_a1539a1bd17fb9 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fc4be26a9a6eac947267a2ed33969c84d64d9fe2",
+  "prompts": {},
+  "sessions": {
+    "s_ebaf331ce9c878": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "057cc88a-d715-4b60-a7f8-ac016efb2489",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
