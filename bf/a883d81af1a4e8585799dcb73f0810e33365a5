@@ -1,0 +1,19 @@
+mac-app/sign.sh
+  s_ebaf331ce9c878::t_360b4822d2b976 29-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "bfa883d81af1a4e8585799dcb73f0810e33365a5",
+  "prompts": {},
+  "sessions": {
+    "s_ebaf331ce9c878": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "057cc88a-d715-4b60-a7f8-ac016efb2489",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
