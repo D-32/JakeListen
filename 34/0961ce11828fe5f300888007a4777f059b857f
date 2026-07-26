@@ -1,0 +1,31 @@
+.wrangler/cache/wrangler-account.json
+  s_ebaf331ce9c878::t_65cf0751749368 1-6
+.wrangler/cache/pages.json
+  s_ebaf331ce9c878::t_65cf0751749368 1-3
+README.md
+  s_ebaf331ce9c878::t_7385b03ecf7abd 8
+mac-app/Info.plist
+  s_ebaf331ce9c878::t_e77c4f69f68b6c 5-30
+mac-app/release.sh
+  s_ebaf331ce9c878::t_42f08eb20870c1 43-47,49-50
+CLAUDE.md
+  s_ebaf331ce9c878::t_d8c5ff51d3fad0 39
+mac-app/JakeListen.entitlements
+  s_ebaf331ce9c878::t_c2cd9b6b2872da 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "340961ce11828fe5f300888007a4777f059b857f",
+  "prompts": {},
+  "sessions": {
+    "s_ebaf331ce9c878": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "057cc88a-d715-4b60-a7f8-ac016efb2489",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
