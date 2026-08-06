@@ -16,10 +16,13 @@ final class AppModel: ObservableObject {
 
     let recorder = AudioRecorder()
     let settings = AppSettings()
+    let updater = UpdateModel()
 
     init() {
         refresh()
         selectedID = recordings.first?.id
+        // The updater restarts the app, so it must never fire mid-recording.
+        updater.isBusyRecording = { [weak self] in self?.isRecording ?? false }
     }
 
     // MARK: - Derived status
@@ -140,6 +143,47 @@ final class AppModel: ObservableObject {
 
     func revealInFinder(_ rec: Recording) {
         NSWorkspace.shared.activateFileViewerSelecting([rec.dir])
+    }
+
+    // MARK: - Export
+
+    /// Write the transcript to ~/Downloads/<fileName>.txt and reveal it, so the
+    /// user can see where it landed. Never overwrites: a clashing name gets " (2)".
+    func saveTranscriptToDownloads(_ rec: Recording, fileName: String) {
+        guard let transcript = rec.transcript, !transcript.isEmpty else {
+            alert = AppAlert(title: "Nothing to save", message: "This recording has no transcript yet.")
+            return
+        }
+        let fm = FileManager.default
+        guard let downloads = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+            alert = AppAlert(title: "Couldn't save", message: "Your Downloads folder couldn't be found.")
+            return
+        }
+
+        // Strip the characters a file name can't contain.
+        var base = fileName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if base.hasSuffix(".txt") { base = String(base.dropLast(4)) }
+        if base.isEmpty { base = rec.fileDateText }
+
+        var url = downloads.appendingPathComponent("\(base).txt")
+        var n = 2
+        while fm.fileExists(atPath: url.path) {
+            url = downloads.appendingPathComponent("\(base) (\(n)).txt")
+            n += 1
+        }
+
+        do {
+            try transcript.write(to: url, atomically: true, encoding: .utf8)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            alert = AppAlert(
+                title: "Couldn't save the transcript",
+                message: "\(error.localizedDescription)\n\nIf macOS is blocking access to your Downloads folder, allow it under System Settings ▸ Privacy & Security ▸ Files and Folders.",
+                openSystemSettings: "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders")
+        }
     }
 
     func delete(_ rec: Recording) {

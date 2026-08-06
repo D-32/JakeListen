@@ -14,6 +14,12 @@ struct JakeListenApp: App {
         }
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    Task { await model.updater.check(manual: true) }
+                }
+                .disabled(model.updater.phase.isBusy)
+            }
             CommandGroup(replacing: .newItem) {
                 Button(model.isRecording ? "Stop Recording" : "New Recording") {
                     model.toggleRecording()

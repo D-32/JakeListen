@@ -26,7 +26,12 @@ permission and a Gemini API key (stored in the login Keychain, never in the repo
 
 ## Release a build for coworkers
 
-One command, once your Apple Developer cert + notary profile exist:
+**Bump the version first** — `CFBundleShortVersionString` *and* `CFBundleVersion`
+in `mac-app/Info.plist`. The auto-updater compares that value against the newest
+GitHub release, so shipping a build that still claims the old version means
+nobody is ever offered the update.
+
+Then one command, once your Apple Developer cert + notary profile exist:
 
 ```bash
 ./mac-app/release.sh      # build → Developer ID sign → .dmg → notarize → staple
@@ -36,11 +41,36 @@ Then attach `mac-app/build/JakeListen.dmg` to a GitHub Release (the website's
 download button points at `releases/latest/download/JakeListen.dmg`):
 
 ```bash
-gh release upload v3.0.1 mac-app/build/JakeListen.dmg --clobber
+gh release upload v3.1.0 mac-app/build/JakeListen.dmg --clobber
 ```
+
+The release **body becomes the changelog shown inside the update popup**, so
+write it for users, not for git.
 
 Full one-time setup (cert, app-specific password, `notarytool store-credentials`)
 is in [mac-app/DISTRIBUTING.md](mac-app/DISTRIBUTING.md).
+
+## Auto-update (`mac-app/Sources/Updater.swift`)
+
+On launch the app asks `api.github.com/repos/D-32/JakeListen/releases/latest` for
+the newest tag. If it's newer, a sheet offers **Update & Restart**: download the
+release's `.dmg`, mount it, verify, swap the bundle in place, relaunch. There's
+also *JakeListen ▸ Check for Updates…*.
+
+Two things that must stay true or updates break:
+
+- **The team ID is pinned.** `UpdateConfig.teamID` (`5EFBK52YD3`) is hard-coded,
+  and the downloaded app must satisfy `anchor apple generic and identifier
+  "com.github.d-32.jakelisten" and certificate leaf[subject.OU] = "<teamID>"`
+  before it is allowed to replace anything. Without that check a hijacked release
+  URL would be remote code execution. **If the signing certificate ever changes,
+  update this constant** — until then updates fail closed and people install by hand.
+- **Releases must be non-draft, non-prerelease, with a `.dmg` asset.** Anything
+  else is ignored.
+
+An app can't overwrite itself while running, so the install ends by writing a
+small shell script that waits on the app's PID, swaps the bundle
+(`ditto` to `.new` → `mv` → delete `.old`), and reopens it.
 
 ## Website deploy — jakelisten.com
 

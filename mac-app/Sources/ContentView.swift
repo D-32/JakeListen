@@ -7,10 +7,12 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var model: AppModel
     @ObservedObject private var recorder: AudioRecorder
+    @ObservedObject private var updater: UpdateModel
 
     init(model: AppModel) {
         self.model = model
         self.recorder = model.recorder
+        self.updater = model.updater
     }
 
     var body: some View {
@@ -33,6 +35,12 @@ struct ContentView: View {
         .sheet(isPresented: $model.showSettings) {
             SettingsView(settings: model.settings)
         }
+        .sheet(item: $updater.available) { info in
+            UpdateSheet(updater: updater, info: info)
+        }
+        .alert(item: $updater.notice) { n in
+            Alert(title: Text(n.title), message: Text(n.message), dismissButton: .default(Text("OK")))
+        }
         .alert(item: $model.alert) { a in
             if let deep = a.openSystemSettings, let url = URL(string: deep) {
                 return Alert(title: Text(a.title), message: Text(a.message),
@@ -45,6 +53,7 @@ struct ContentView: View {
         }
         .task {
             if !model.settings.hasAPIKey { model.showSettings = true }
+            model.updater.checkOnLaunch()
         }
     }
 
@@ -71,7 +80,8 @@ struct ContentView: View {
                         .padding(.vertical, 6)
                 }
                 ForEach(model.recordings) { rec in
-                    RecordingRow(title: rec.title,
+                    RecordingRow(title: rec.displayTitle,
+                                 dateText: rec.dateText,
                                  durationText: rec.durationText,
                                  status: model.status(for: rec))
                         .tag(rec.id)
@@ -100,6 +110,7 @@ struct ContentView: View {
 
 private struct RecordingRow: View {
     let title: String
+    let dateText: String
     let durationText: String
     let status: RecordingStatus
 
@@ -108,12 +119,17 @@ private struct RecordingRow: View {
             Circle().fill(dotColor).frame(width: 8, height: 8)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).lineLimit(1)
-                Text(status == .done ? durationText : status.label)
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(subtitle)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
         }
         .padding(.vertical, 3)
+    }
+
+    /// Always the date; the duration once it's done, the status while it isn't.
+    private var subtitle: String {
+        status == .done ? "\(dateText) · \(durationText)" : "\(dateText) · \(status.label)"
     }
 
     private var dotColor: Color {

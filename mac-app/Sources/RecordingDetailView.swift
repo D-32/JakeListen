@@ -69,6 +69,8 @@ private struct PastRecordingView: View {
     @ObservedObject var model: AppModel
     let rec: Recording
 
+    @State private var showSaveSheet = false
+
     private var status: RecordingStatus { model.status(for: rec) }
 
     var body: some View {
@@ -109,7 +111,8 @@ private struct PastRecordingView: View {
                             Text(summary).textSelection(.enabled).lineSpacing(2)
                         }
                     }
-                    section("Transcript", systemImage: "text.alignleft", copyText: rec.transcript) {
+                    section("Transcript", systemImage: "text.alignleft", copyText: rec.transcript,
+                            onSave: { showSaveSheet = true }) {
                         Text(rec.transcript ?? "")
                             .font(.system(.body, design: .monospaced))
                             .textSelection(.enabled)
@@ -122,14 +125,19 @@ private struct PastRecordingView: View {
             .padding(28)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .sheet(isPresented: $showSaveSheet) {
+            SaveTranscriptSheet(defaultName: rec.exportBaseName) { name in
+                model.saveTranscriptToDownloads(rec, fileName: name)
+            }
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(rec.title).font(.title2.weight(.semibold))
+            Text(rec.displayTitle).font(.title2.weight(.semibold))
             HStack(spacing: 10) {
                 StatusBadge(status: status)
-                Text("· \(rec.durationText)").foregroundStyle(.secondary)
+                Text("· \(rec.dateText) · \(rec.durationText)").foregroundStyle(.secondary)
                 Spacer()
                 actions
             }
@@ -161,14 +169,24 @@ private struct PastRecordingView: View {
 
     private func section<Content: View>(_ title: String, systemImage: String,
                                         copyText: String? = nil,
+                                        onSave: (() -> Void)? = nil,
                                         @ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 14) {
                 Label(title, systemImage: systemImage)
                     .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
                 Spacer()
                 if let copyText, !copyText.isEmpty {
                     CopyButton(text: copyText)
+                }
+                if let onSave, copyText?.isEmpty == false {
+                    Button(action: onSave) {
+                        Label("Save", systemImage: "square.and.arrow.down")
+                            .font(.caption.weight(.medium))
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Save the transcript as a .txt file in Downloads")
                 }
             }
             content()
@@ -184,6 +202,61 @@ private struct PastRecordingView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Save transcript
+
+/// The little "Save" popup: one editable file name, pre-filled with the
+/// recording's date and its meeting title. Saves into ~/Downloads as .txt.
+private struct SaveTranscriptSheet: View {
+    let defaultName: String
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String = ""
+    @FocusState private var focused: Bool
+
+    private var trimmed: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Save transcript").font(.headline)
+                Text("Saved to your Downloads folder as a .txt file.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 6) {
+                TextField("File name", text: $name)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focused)
+                    .onSubmit { save() }
+                Text(".txt").foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Save") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(trimmed.isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+        .onAppear {
+            name = defaultName
+            focused = true
+        }
+    }
+
+    private func save() {
+        guard !trimmed.isEmpty else { return }
+        onSave(trimmed)
+        dismiss()
     }
 }
 
