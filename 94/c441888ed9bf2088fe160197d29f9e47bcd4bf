@@ -1,0 +1,59 @@
+CLAUDE.md
+  s_087f41364cdb3a::t_8d760509bea33b 29-34,44,47-49,53-73
+  s_087f41364cdb3a::t_209dd0bfccfab2 74
+mac-app/Sources/ContentView.swift
+  s_087f41364cdb3a::t_121d5ca00fa883 41-42
+  s_087f41364cdb3a::t_ebbf81df87ed64 38-40,43
+  s_087f41364cdb3a::t_4b45e6748dc20d 113,122-123,130-132
+  s_087f41364cdb3a::t_b90f09b97752ae 10,15
+  s_087f41364cdb3a::t_4e4cdc0c738834 56
+  s_087f41364cdb3a::t_0bf6cb553d7d12 83-84
+  s_087f41364cdb3a::t_66dbe79b18209c 133-134
+mac-app/Sources/Transcriber.swift
+  s_087f41364cdb3a::t_d78de785b6e58b 7-8
+  s_087f41364cdb3a::t_aa7a237db17804 71-89
+  s_087f41364cdb3a::t_4d39ca6b8d03e9 106-118
+mac-app/Sources/UpdateSheet.swift
+  s_087f41364cdb3a::t_127450101d96a7 1-76
+mac-app/Sources/RecordingDetailView.swift
+  s_087f41364cdb3a::t_07fba35192cf62 208-262
+  s_087f41364cdb3a::t_89413baa72d77c 114-115,128-132,137,140
+  s_087f41364cdb3a::t_426ca381ae2ba3 172,175,182-189
+  s_087f41364cdb3a::t_1465cf1a894a34 72-73
+  s_087f41364cdb3a::t_d646ef0212e582 190
+mac-app/Sources/AppModel.swift
+  s_087f41364cdb3a::t_289e7b91a5ba82 19,24-25
+  s_087f41364cdb3a::t_9a5c4117e883a9 148-188
+mac-app/Sources/JakeListenApp.swift
+  s_087f41364cdb3a::t_a667a68742cf59 17-22
+mac-app/Sources/Recording.swift
+  s_087f41364cdb3a::t_b1912d2d311717 166-168,172
+  s_087f41364cdb3a::t_48ef853a31e02b 38-39,48,51-65
+  s_087f41364cdb3a::t_7746213111fa7e 9
+  s_087f41364cdb3a::t_d9b7edcd4f04bb 121-131,138
+  s_087f41364cdb3a::t_718befabfbddfb 86-87
+  s_087f41364cdb3a::t_374e7393d1579b 66
+mac-app/Sources/Updater.swift
+  s_087f41364cdb3a::t_e24f8d8e889221 1-128,137-138,140-141,143-166,171-178,183-379
+  s_087f41364cdb3a::t_24edefa8764543 129-136,139
+  s_087f41364cdb3a::t_035cff353faace 142
+  s_087f41364cdb3a::t_268c3377913621 167-170,179-182
+mac-app/Info.plist
+  s_087f41364cdb3a::t_4156abc463b252 18,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "94c441888ed9bf2088fe160197d29f9e47bcd4bf",
+  "prompts": {},
+  "sessions": {
+    "s_087f41364cdb3a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5f9e0e34-b37b-4dcb-a0de-f7cb3a9e6bbf",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dylan Marriott <info@d-32.com>"
+    }
+  }
+}
