@@ -34,6 +34,10 @@ final class AudioRecorder: ObservableObject {
     private var systemTap: SystemAudioTap?
     private var meter: Timer?
     private var startedAt: Date?
+    private var configObserver: NSObjectProtocol?
+
+    /// Set when the mic tap could not be put back after a hardware change.
+    private var micInterrupted = false
 
     // MARK: - Permissions
 
@@ -70,16 +74,10 @@ final class AudioRecorder: ObservableObject {
         systemTap = tap
 
         // Microphone via the engine's input node.
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        input.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
-            mic.append(buffer)
-        }
+        micInterrupted = false
         do {
-            engine.prepare()
-            try engine.start()
+            try installMicTap(into: mic)
         } catch {
-            input.removeTap(onBus: 0)
             tap.stop()
             mic.finish(); sys.finish()
             micWriter = nil; sysWriter = nil; systemTap = nil
@@ -88,11 +86,50 @@ final class AudioRecorder: ObservableObject {
             throw error
         }
 
+        // macOS stops the engine and detaches its taps whenever the audio
+        // hardware changes — headphones in or out, a sample-rate change, waking
+        // from sleep, or the aggregate device the system-audio tap creates.
+        // Nothing puts them back on its own, so the mic track simply stopped
+        // growing while the system track kept going. That is why the two tracks
+        // ended up different lengths, and why me.m4a could come out empty.
+        configObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.state == .recording, let writer = self.micWriter else { return }
+                    do { try self.installMicTap(into: writer) } catch { self.micInterrupted = true }
+                }
+            }
+
         startedAt = Date()
         elapsed = 0
         captureWarning = nil
         state = .recording
         startMeter()
+    }
+
+    /// (Re)attach the tap to the engine's input node and start the engine.
+    ///
+    /// The format is read fresh every time: after a hardware change the input
+    /// node reports a different one, and installing a tap with a stale format
+    /// fails. A sample rate of 0 means there is no usable input device — a tap
+    /// installed on that captures nothing at all while the meters still look
+    /// alive, so refuse to start rather than hand back an empty track.
+    private func installMicTap(into writer: AudioTrackWriter) throws {
+        let input = engine.inputNode
+        input.removeTap(onBus: 0)
+
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw NSError(domain: "JakeListen", code: 2, userInfo: [NSLocalizedDescriptionKey:
+                "No usable microphone was found. Choose an input device under "
+                + "System Settings ▸ Sound ▸ Input, then start the recording again."])
+        }
+
+        input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak writer] buffer, _ in
+            writer?.append(buffer)
+        }
+        engine.prepare()
+        try engine.start()
     }
 
     /// Stop capturing and flush both files. Returns the recording's duration.
@@ -101,16 +138,28 @@ final class AudioRecorder: ObservableObject {
         guard state == .recording else { return 0 }
         meter?.invalidate(); meter = nil
 
+        if let configObserver {
+            NotificationCenter.default.removeObserver(configObserver)
+            self.configObserver = nil
+        }
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        let systemInterrupted = systemTap?.interrupted ?? false
         systemTap?.stop(); systemTap = nil
 
-        var silent: [String] = []
-        if micWriter?.framesWritten == 0 { silent.append("your microphone") }
-        if sysWriter?.framesWritten == 0 { silent.append("the meeting audio") }
-        captureWarning = silent.isEmpty ? nil
-            : "Nothing was captured from \(silent.joined(separator: " or ")). "
-            + "That track will be missing from the transcript."
+        var problems: [String] = []
+        if micWriter?.framesWritten == 0 {
+            problems.append("Nothing was captured from your microphone.")
+        } else if micInterrupted {
+            problems.append("Your microphone dropped out partway through and couldn't be restarted.")
+        }
+        if sysWriter?.framesWritten == 0 {
+            problems.append("Nothing was captured from the meeting audio.")
+        } else if systemInterrupted {
+            problems.append("The meeting audio dropped out partway through and couldn't be restarted.")
+        }
+        captureWarning = problems.isEmpty ? nil
+            : problems.joined(separator: " ") + " That part will be missing from the transcript."
 
         micWriter?.finish(); micWriter = nil
         sysWriter?.finish(); sysWriter = nil

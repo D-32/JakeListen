@@ -73,6 +73,17 @@ final class SystemAudioTap {
 
     private let writer: AudioTrackWriter
 
+    /// Serialises rebuilds triggered by a device change against stop().
+    private let watchQueue = DispatchQueue(label: "com.jakelisten.syscap.devicewatch")
+    private var deviceListener: AudioObjectPropertyListenerBlock?
+    private var running = false
+
+    /// True when the capture had to be rebuilt after the output device changed
+    /// and could not be. Read at the end of a recording so the user is told the
+    /// meeting audio stops partway through, rather than discovering it in the
+    /// transcript.
+    private(set) var interrupted = false
+
     /// Most recent 0…1 level, for the "Meeting" visualiser.
     var level: Float { writer.level }
 
@@ -81,6 +92,56 @@ final class SystemAudioTap {
     }
 
     func start() throws {
+        try buildTap()
+        running = true
+        watchDefaultOutputDevice()
+    }
+
+    func stop() {
+        running = false
+        unwatchDefaultOutputDevice()
+        watchQueue.sync { }        // let any in-flight rebuild finish first
+        teardownTap()
+    }
+
+    // MARK: - Following the default output device
+
+    /// The aggregate device is built around whichever output device was default
+    /// when recording started. Switch outputs mid-meeting — headphones in or
+    /// out, a dock, AirPods connecting — and the tap keeps pointing at the old
+    /// device and quietly stops delivering anything. Rebuild it against the new
+    /// default, which costs a fraction of a second rather than the rest of the
+    /// meeting.
+    private func watchDefaultOutputDevice() {
+        var addr = Self.defaultOutputAddress
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard let self, self.running else { return }
+            self.teardownTap()
+            do { try self.buildTap() } catch { self.interrupted = true }
+        }
+        deviceListener = block
+        AudioObjectAddPropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject), &addr, watchQueue, block)
+    }
+
+    private func unwatchDefaultOutputDevice() {
+        guard let deviceListener else { return }
+        var addr = Self.defaultOutputAddress
+        AudioObjectRemovePropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject), &addr, watchQueue, deviceListener)
+        self.deviceListener = nil
+    }
+
+    private static var defaultOutputAddress: AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultSystemOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+    }
+
+    // MARK: - Tap lifecycle
+
+    private func buildTap() throws {
         // Global tap of all output, excluding nothing → the whole system mix.
         let tapDesc = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
         tapDesc.uuid = UUID()
@@ -130,7 +191,7 @@ final class SystemAudioTap {
         guard e == noErr else { throw SystemAudioTapError.start(e) }
     }
 
-    func stop() {
+    private func teardownTap() {
         if let procID {
             AudioDeviceStop(aggID, procID)
             AudioDeviceDestroyIOProcID(aggID, procID)
