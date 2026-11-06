@@ -1,4 +1,4 @@
-// AudioTrackWriter — writes one audio track to a compact .m4a (AAC) file and
+// AudioTrackWriter — writes one audio track to an uncompressed .wav file and
 // reports a live 0…1 level for the visualiser.
 //
 // Incoming buffers arrive in whatever format the source uses (the mic node's
@@ -28,15 +28,34 @@ final class AudioTrackWriter {
         }
         target = fmt
 
-        // AAC in an .m4a container — small files that Gemini accepts directly.
+        // Uncompressed 16-bit PCM in a .wav, NOT AAC in an .m4a. An .m4a is only
+        // readable once it is closed — that is when its sample index is written —
+        // so a crash mid-recording used to destroy the whole meeting. A .wav that
+        // is never closed loses only two length fields in its header, which
+        // RecordingRepair patches; the samples are already on disk. The .m4a is
+        // produced from this file when the recording ends. See RecordingRepair.
         let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVFormatIDKey: kAudioFormatLinearPCM,
             AVSampleRateKey: 16_000,
             AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
         ]
         file = try AVAudioFile(forWriting: url, settings: settings,
                                commonFormat: .pcmFormatFloat32, interleaved: false)
     }
+
+    /// The number of buffers dropped because the converter could not be built.
+    /// Read by AudioRecorder so a track that silently captured nothing can be
+    /// reported instead of leaving the user with an empty file and a meter that
+    /// looked perfectly healthy the whole time.
+    private(set) var droppedBuffers: Int = 0
+
+    /// How many frames actually reached the file. Zero at the end of a recording
+    /// means this track captured nothing at all.
+    private(set) var framesWritten: AVAudioFrameCount = 0
 
     /// Convert one source buffer to 16 kHz mono, append it, and update `level`.
     func append(_ source: AVAudioPCMBuffer) {
@@ -46,11 +65,13 @@ final class AudioTrackWriter {
         if converter == nil || converter?.inputFormat != source.format {
             converter = AVAudioConverter(from: source.format, to: target)
         }
-        guard let converter else { return }
+        guard let converter else { droppedBuffers += 1; return }
 
         let ratio = target.sampleRate / source.format.sampleRate
         let capacity = AVAudioFrameCount(Double(source.frameLength) * ratio) + 32
-        guard let out = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return }
+        guard let out = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else {
+            droppedBuffers += 1; return
+        }
 
         var fed = false
         var convError: NSError?
@@ -60,10 +81,15 @@ final class AudioTrackWriter {
             status.pointee = .haveData
             return source
         }
-        guard convError == nil, out.frameLength > 0 else { return }
+        guard convError == nil, out.frameLength > 0 else { droppedBuffers += 1; return }
 
         level = Self.normalizedLevel(out)
-        try? file.write(from: out)
+        do {
+            try file.write(from: out)
+            framesWritten += out.frameLength
+        } catch {
+            droppedBuffers += 1
+        }
     }
 
     /// Flush and close the file.

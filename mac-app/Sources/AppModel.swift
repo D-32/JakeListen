@@ -23,6 +23,36 @@ final class AppModel: ObservableObject {
         selectedID = recordings.first?.id
         // The updater restarts the app, so it must never fire mid-recording.
         updater.isBusyRecording = { [weak self] in self?.isRecording ?? false }
+        recoverInterruptedRecordings()
+    }
+
+    // MARK: - Crash recovery
+
+    /// A crash or a force-quit leaves raw .wav tracks behind: there is no .m4a,
+    /// and meta.json still says 0:00 because `stopRecording()` never ran. Compress
+    /// them and give the recording its real length back. Deliberately quiet — we
+    /// never auto-transcribe here, so a relaunch can't run up an API bill.
+    private func recoverInterruptedRecordings() {
+        let pending = recordings.filter { RecordingRepair.needsFinalizing($0) }
+        guard !pending.isEmpty else { return }
+        Task {
+            for rec in pending {
+                let recovered = await Self.finalize(rec)
+                if var r = recordings.first(where: { $0.id == rec.id }) {
+                    if let recovered, r.duration <= 0 { r.duration = recovered }
+                    RecordingStore.save(r)
+                }
+                refresh()
+            }
+        }
+    }
+
+    /// Compress a recording's raw tracks into its .m4a files, off the main thread.
+    /// Returns the longest track's length, or nil if there was nothing to do.
+    private static func finalize(_ rec: Recording) async -> TimeInterval? {
+        await Task.detached(priority: .utility) {
+            try? RecordingRepair.finalize(rec)
+        }.value
     }
 
     // MARK: - Derived status
@@ -71,7 +101,7 @@ final class AppModel: ObservableObject {
         selectedID = rec.id
 
         do {
-            try recorder.start(meURL: rec.meURL, othersURL: rec.othersURL)
+            try recorder.start(meURL: rec.meWavURL, othersURL: rec.othersWavURL)
         } catch {
             currentRecordingID = nil
             RecordingStore.delete(rec)
@@ -92,11 +122,22 @@ final class AppModel: ObservableObject {
         refresh()
         selectedID = id
 
-        // Auto-transcribe if we have a key; otherwise the recording just waits.
-        if settings.hasAPIKey {
-            if let rec = recordings.first(where: { $0.id == id }) { transcribe(rec) }
-        } else {
-            showSettings = true
+        if let warning = recorder.captureWarning {
+            alert = AppAlert(title: "Part of this meeting wasn't recorded", message: warning)
+        }
+
+        Task {
+            // Compress the raw tracks first — everything downstream reads .m4a.
+            if let rec = recordings.first(where: { $0.id == id }) {
+                _ = await Self.finalize(rec)
+                refresh()
+            }
+            // Auto-transcribe if we have a key; otherwise the recording just waits.
+            if settings.hasAPIKey {
+                if let rec = recordings.first(where: { $0.id == id }) { transcribe(rec) }
+            } else {
+                showSettings = true
+            }
         }
     }
 
@@ -120,6 +161,8 @@ final class AppModel: ObservableObject {
 
         Task {
             do {
+                // A recording picked up straight after a crash may still be raw.
+                _ = await Self.finalize(rec)
                 try await Transcriber.run(rec, apiKey: apiKey, model: model, context: context)
             } catch {
                 if var r = recordings.first(where: { $0.id == rec.id }) {

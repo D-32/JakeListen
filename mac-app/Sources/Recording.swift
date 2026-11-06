@@ -3,6 +3,8 @@
 // Layout:  ~/Library/Application Support/JakeListen/Recordings/<id>/
 //   me.m4a          your microphone
 //   others.m4a      the meeting / system audio
+//   me.wav          raw capture, only while recording (or after a crash)
+//   others.wav      ditto — see RecordingRepair
 //   meta.json       title, createdAt, duration, lastError
 //   transcript.txt  written once transcription succeeds
 //   summary.txt     written once summarising succeeds
@@ -32,7 +34,7 @@ enum RecordingStatus {
     }
 }
 
-struct Recording: Identifiable, Equatable {
+struct Recording: Identifiable, Equatable, Sendable {
     let id: String          // the folder name / timestamp key
     let dir: URL
     var title: String       // the date-based fallback title ("6 Aug 2026 at 14:03")
@@ -43,6 +45,12 @@ struct Recording: Identifiable, Equatable {
 
     var meURL: URL         { dir.appendingPathComponent("me.m4a") }
     var othersURL: URL     { dir.appendingPathComponent("others.m4a") }
+
+    /// Capture writes here; RecordingRepair turns these into the .m4a files
+    /// above once the recording ends. They exist mid-recording, and afterwards
+    /// only if the app was killed before it could finish the job.
+    var meWavURL: URL      { dir.appendingPathComponent("me.wav") }
+    var othersWavURL: URL  { dir.appendingPathComponent("others.wav") }
     var transcriptURL: URL { dir.appendingPathComponent("transcript.txt") }
     var summaryURL: URL    { dir.appendingPathComponent("summary.txt") }
     var titleURL: URL      { dir.appendingPathComponent("title.txt") }

@@ -1,6 +1,9 @@
-// AudioRecorder — captures both sides of a meeting to two .m4a files:
-//   • me.m4a      → your microphone (AVAudioEngine input tap)
-//   • others.m4a  → the meeting/system audio (SystemAudioTap, Core Audio taps)
+// AudioRecorder — captures both sides of a meeting to two raw .wav files:
+//   • me.wav      → your microphone (AVAudioEngine input tap)
+//   • others.wav  → the meeting/system audio (SystemAudioTap, Core Audio taps)
+//
+// They are compressed to .m4a once the recording ends — see RecordingRepair for
+// why capture deliberately does NOT write .m4a directly.
 //
 // It exposes two live 0…1 levels so the UI can show a visualiser for each source
 // and you can *see* both are being picked up. Nothing here talks to the network;
@@ -18,6 +21,12 @@ final class AudioRecorder: ObservableObject {
     @Published private(set) var micLevel: Float = 0
     @Published private(set) var systemLevel: Float = 0
     @Published private(set) var elapsed: TimeInterval = 0
+
+    /// Set by `stop()` when a track captured nothing. The meters are driven from
+    /// the converted buffers, so a source that silently drops every buffer still
+    /// looks alive on screen — without this the user only finds out when the
+    /// transcript comes back missing half the meeting.
+    @Published private(set) var captureWarning: String?
 
     private let engine = AVAudioEngine()
     private var micWriter: AudioTrackWriter?
@@ -81,6 +90,7 @@ final class AudioRecorder: ObservableObject {
 
         startedAt = Date()
         elapsed = 0
+        captureWarning = nil
         state = .recording
         startMeter()
     }
@@ -94,6 +104,14 @@ final class AudioRecorder: ObservableObject {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         systemTap?.stop(); systemTap = nil
+
+        var silent: [String] = []
+        if micWriter?.framesWritten == 0 { silent.append("your microphone") }
+        if sysWriter?.framesWritten == 0 { silent.append("the meeting audio") }
+        captureWarning = silent.isEmpty ? nil
+            : "Nothing was captured from \(silent.joined(separator: " or ")). "
+            + "That track will be missing from the transcript."
+
         micWriter?.finish(); micWriter = nil
         sysWriter?.finish(); sysWriter = nil
 

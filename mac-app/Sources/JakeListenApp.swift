@@ -13,15 +13,23 @@ struct JakeListenApp: App {
                 .frame(minWidth: 760, minHeight: 520)
         }
         .windowToolbarStyle(.unified)
+        // NOTE: these menu items deliberately have FIXED titles and no
+        // `.disabled(…)`. Both used to be computed from @MainActor model state
+        // (`model.isRecording`, `model.updater.phase.isBusy`), which made macOS
+        // re-enter Swift's main-executor check every time it validated the menu
+        // bar. On macOS 26/27 that path segfaults inside Apple's own code
+        // (MenuBarClientCore → swift_task_isCurrentExecutor → _isSameExecutor),
+        // taking the app — and any recording in progress — with it. Keeping the
+        // items static keeps our model off that path. The actions themselves are
+        // no-ops when they don't apply, so nothing is lost but a prettier title.
         .commands {
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") {
                     Task { await model.updater.check(manual: true) }
                 }
-                .disabled(model.updater.phase.isBusy)
             }
             CommandGroup(replacing: .newItem) {
-                Button(model.isRecording ? "Stop Recording" : "New Recording") {
+                Button("Start / Stop Recording") {
                     model.toggleRecording()
                 }
                 .keyboardShortcut("r", modifiers: [.command])

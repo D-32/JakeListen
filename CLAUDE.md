@@ -11,6 +11,8 @@ site (`site/`) served at **jakelisten.com**.
 - `mac-app/build.sh` — build the `.app` with `swiftc` (Xcode Command Line Tools only).
 - `mac-app/release.sh` — signed + notarized `.dmg` for distribution (see below).
 - `mac-app/DISTRIBUTING.md` — the full signing/notarization story.
+- `mac-app/tools/` — `repair-m4a.sh`, which rebuilds an `.m4a` left unfinished by
+  a pre-3.2 build (see "Crash safety" below).
 - `site/` — the static website (`index.html` + a few images).
 - `wrangler.toml` — Cloudflare deploy config for the website (see below).
 
@@ -49,6 +51,42 @@ write it for users, not for git.
 
 Full one-time setup (cert, app-specific password, `notarytool store-credentials`)
 is in [mac-app/DISTRIBUTING.md](mac-app/DISTRIBUTING.md).
+
+## Crash safety — why capture writes WAV
+
+Capture writes **uncompressed `me.wav` / `others.wav`**, and
+`RecordingRepair.swift` compresses them to `.m4a` when the recording ends.
+
+That detour is deliberate. AAC in an `.m4a` only becomes readable when the file
+is *closed* — that is when the sample index (`moov`) is written. If the app dies
+mid-recording the file is full of good audio that nothing can open, and Gemini
+answers `400 INVALID_ARGUMENT`. A WAV that is never closed loses only two length
+fields in its header, which `repairWaveHeaderIfNeeded` patches; the samples are
+already on disk, byte for byte.
+
+So a crash now costs nothing. On the next launch `AppModel.recoverInterrupted
+Recordings()` finds the leftover `.wav` files, compresses them, and restores the
+recording's real duration (a crash means `stopRecording()` never ran, so
+`meta.json` still says `0`). It never auto-transcribes — no surprise API bills.
+
+Cost: ~230 MB of disk per hour while recording, deleted as soon as the `.m4a`
+exists.
+
+Recordings broken by a **pre-3.2 build** are still repairable after the fact:
+
+```bash
+./mac-app/tools/repair-m4a.sh <broken>.m4a
+```
+
+It walks the orphaned AAC frames, asks libavcodec for each frame's length, and
+remuxes. Lossless — verified bit-identical against an undamaged recording. Needs
+`ffmpeg` (brew) and clang.
+
+Also deliberate: the menu items in `JakeListenApp.swift` have **fixed titles and
+no `.disabled(…)`**. Computing them from `@MainActor` state made macOS re-enter
+Swift's main-executor check on every menu validation, and on macOS 26/27 that
+path segfaults inside Apple's own code (`MenuBarClientCore` →
+`swift_task_isCurrentExecutor` → `_isSameExecutor`).
 
 ## Auto-update (`mac-app/Sources/Updater.swift`)
 
